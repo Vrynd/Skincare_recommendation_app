@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:recommendation_app/core/routes/app_router.dart';
@@ -14,20 +15,24 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlZHFicWpzeXlrY2ZzcXdweWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1ODMxMjQsImV4cCI6MjA5NDE1OTEyNH0.Lsx3OXNd_nOl_rie-0wIeff_3q9PCvYYOzvd5mf_bxU',
   );
 
+  // Buat instance AuthProvider agar bisa dipass ke Router dan Provider tree
+  final authProvider = AuthProvider()..initializeAuth();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider()..initializeAuth(),
-        ),
+        ChangeNotifierProvider.value(value: authProvider),
       ],
-      child: const MyApp(),
+      child: MyApp(authProvider: authProvider),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthProvider authProvider;
+  late final GoRouter _router = AppRouter.createRouter(authProvider);
+
+  MyApp({super.key, required this.authProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +41,9 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light, // Mengubah ke Light Mode untuk mereview gaya baru
-      routerConfig: AppRouter.router,
+      routerConfig: _router,
       debugShowCheckedModeBanner: false,
     );
   }
 }
+

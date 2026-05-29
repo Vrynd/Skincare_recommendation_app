@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_button.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
@@ -7,6 +9,7 @@ import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/core/widgets/app_text_field.dart';
+import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/auth/widgets/auth_header.dart';
 import 'package:recommendation_app/features/auth/widgets/auth_remember.dart';
 import 'package:recommendation_app/features/auth/widgets/auth_social_button.dart';
@@ -98,8 +101,63 @@ class _AuthScreenState extends State<AuthScreen> {
     return null;
   }
 
+  // --- Auth Handlers ---
+  Future<void> _handleLogin() async {
+    if (!_loginFormKey.currentState!.validate()) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.signIn(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/home');
+    } else if (authProvider.errorMessage != null) {
+      _showErrorSnackBar(authProvider.errorMessage!);
+      authProvider.clearErrorMessage();
+    }
+  }
+
+  Future<void> _handleRegister() async {
+    if (!_registerFormKey.currentState!.validate()) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.signUp(
+      email: _registerEmailController.text.trim(),
+      password: _registerPasswordController.text,
+      namaLengkap: _fullNameController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/home');
+    } else if (authProvider.errorMessage != null) {
+      _showErrorSnackBar(authProvider.errorMessage!);
+      authProvider.clearErrorMessage();
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: context.colors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final isLoading = authProvider.isLoading;
+
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
       body: Column(
@@ -131,6 +189,8 @@ class _AuthScreenState extends State<AuthScreen> {
                         setState(() {
                           _selectedTabIndex = index;
                         });
+                        // Bersihkan error saat pindah tab
+                        context.read<AuthProvider>().clearErrorMessage();
                       },
                     ),
                     AppSpacing.v24,
@@ -173,11 +233,8 @@ class _AuthScreenState extends State<AuthScreen> {
                             AppButton.primary(
                               title: 'Log In',
                               borderRadius: AppRadius.br32,
-                              onTap: () {
-                                if (_loginFormKey.currentState!.validate()) {
-                                  // Logika login
-                                }
-                              },
+                              isLoading: isLoading,
+                              onTap: isLoading ? null : _handleLogin,
                             ),
                             AppSpacing.v32,
                             Padding(
@@ -232,11 +289,8 @@ class _AuthScreenState extends State<AuthScreen> {
                             AppButton.primary(
                               title: 'Register',
                               borderRadius: AppRadius.br32,
-                              onTap: () {
-                                if (_registerFormKey.currentState!.validate()) {
-                                  // Logika register
-                                }
-                              },
+                              isLoading: isLoading,
+                              onTap: isLoading ? null : _handleRegister,
                             ),
                             AppSpacing.v32,
                             Padding(
