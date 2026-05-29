@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
-import 'package:recommendation_app/features/auth/screens/auth_screen.dart';
+import 'package:recommendation_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:recommendation_app/features/home/screens/home_screen.dart';
 
 class AppRouter {

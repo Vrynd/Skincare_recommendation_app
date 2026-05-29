@@ -8,6 +8,7 @@ class AppScaffold extends StatelessWidget {
   final Color? backgroundColor;
   final Widget? bottomNavigationBar;
   final Widget? floatingActionButton;
+  final bool? resizeToAvoidBottomInset;
 
   const AppScaffold({
     super.key,
@@ -17,6 +18,7 @@ class AppScaffold extends StatelessWidget {
     this.backgroundColor,
     this.bottomNavigationBar,
     this.floatingActionButton,
+    this.resizeToAvoidBottomInset,
   });
 
   @override
@@ -34,6 +36,7 @@ class AppScaffold extends StatelessWidget {
       body: body,
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
     );
 
     // Jika layar penuh, status bar tidak memerlukan overlay warna

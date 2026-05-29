@@ -10,13 +10,14 @@ import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/widgets/app_text_field.dart';
+import 'package:recommendation_app/features/auth/services/auth_local_service.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
-import 'package:recommendation_app/features/auth/utils/auth_validator.dart';
-import 'package:recommendation_app/features/auth/widgets/auth_header.dart';
-import 'package:recommendation_app/features/auth/widgets/auth_remember.dart';
-import 'package:recommendation_app/features/auth/widgets/auth_social_button.dart';
-import 'package:recommendation_app/features/auth/widgets/auth_social_divider.dart';
-import 'package:recommendation_app/features/auth/widgets/auth_tab.dart';
+import 'package:recommendation_app/features/auth/presentation/utils/auth_validator.dart';
+import 'package:recommendation_app/features/auth/presentation/widgets/auth_header.dart';
+import 'package:recommendation_app/features/auth/presentation/widgets/auth_remember.dart';
+import 'package:recommendation_app/features/auth/presentation/widgets/auth_social_button.dart';
+import 'package:recommendation_app/features/auth/presentation/widgets/auth_social_divider.dart';
+import 'package:recommendation_app/features/auth/presentation/widgets/auth_tab.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -28,18 +29,25 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> with AuthValidator {
   int _selectedTabIndex = 0;
   bool _isSubmitting = false;
+  bool _rememberMe = false;
+  final AuthLocalService _localService = AuthLocalService();
 
   // Login Keys & Controllers
   final _loginFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;
 
   // Register Keys & Controllers
   final _registerFormKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _registerEmailController = TextEditingController();
   final _registerPasswordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedCredentials();
+  }
 
   @override
   void dispose() {
@@ -51,17 +59,52 @@ class _AuthScreenState extends State<AuthScreen> with AuthValidator {
     super.dispose();
   }
 
+  Future<void> _loadRememberedCredentials() async {
+    final rememberMe = await _localService.getRememberMeStatus();
+    if (rememberMe) {
+      final email = await _localService.getRememberedEmail();
+      if (email != null && email.isNotEmpty) {
+        setState(() {
+          _emailController.text = email;
+          _rememberMe = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleRememberMePersistence(String email) async {
+    await _localService.saveRemembered(email, _rememberMe);
+  }
+
   void _resetFormState() {
-    _emailController.clear();
+    if (_selectedTabIndex == 0) {
+      if (_emailController.text.isEmpty &&
+          _registerEmailController.text.isNotEmpty) {
+        _emailController.text = _registerEmailController.text;
+      }
+    } else {
+      if (_registerEmailController.text.isEmpty &&
+          _emailController.text.isNotEmpty) {
+        _registerEmailController.text = _emailController.text;
+      }
+    }
+
     _passwordController.clear();
-    _fullNameController.clear();
-    _registerEmailController.clear();
     _registerPasswordController.clear();
     _loginFormKey.currentState?.reset();
     _registerFormKey.currentState?.reset();
-    setState(() {
-      _rememberMe = false;
-    });
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: context.colors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   Future<void> _executeAuthAction({
@@ -79,6 +122,10 @@ class _AuthScreenState extends State<AuthScreen> with AuthValidator {
 
       if (success) {
         ScaffoldMessenger.of(context).clearSnackBars();
+        if (_selectedTabIndex == 0) {
+          await _handleRememberMePersistence(_emailController.text.trim());
+        }
+        if (!mounted) return;
         context.goNamed(AppRouter.homeName);
       } else if (authProvider.errorMessage != null) {
         _showErrorSnackBar(authProvider.errorMessage!);
@@ -110,22 +157,11 @@ class _AuthScreenState extends State<AuthScreen> with AuthValidator {
     );
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: context.colors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.br16),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
+      resizeToAvoidBottomInset: false,
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -145,6 +181,8 @@ class _AuthScreenState extends State<AuthScreen> with AuthValidator {
               borderRadius: AppRadius.br32,
               padding: const EdgeInsets.fromLTRB(20, 32, 20, 48),
               child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -213,7 +251,7 @@ class _AuthScreenState extends State<AuthScreen> with AuthValidator {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                               ),
-                              child: AuthSocialDivider(
+                              child: const AuthSocialDivider(
                                 label: 'atau login dengan',
                               ),
                             ),
@@ -275,7 +313,7 @@ class _AuthScreenState extends State<AuthScreen> with AuthValidator {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                               ),
-                              child: AuthSocialDivider(
+                              child: const AuthSocialDivider(
                                 label: 'atau register dengan',
                               ),
                             ),

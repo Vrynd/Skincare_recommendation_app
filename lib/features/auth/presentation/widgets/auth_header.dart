@@ -15,7 +15,7 @@ class AuthHeader extends StatelessWidget {
     return Expanded(
       flex: 1,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 42, 20, 0),
+        padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -35,7 +35,7 @@ class AuthHeader extends StatelessWidget {
                 ),
               ),
             ),
-            AppSpacing.v40,
+            AppSpacing.v32,
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
