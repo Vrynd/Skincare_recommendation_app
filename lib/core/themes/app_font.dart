@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppFont {
-  static final TextStyle _base = GoogleFonts.dmSans();
+  static final TextStyle _base = GoogleFonts.outfit();
 
   // Display
   static final TextStyle displayLarge = _base.copyWith(
