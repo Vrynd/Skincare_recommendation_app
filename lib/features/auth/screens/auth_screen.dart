@@ -8,8 +8,10 @@ import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
+import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/widgets/app_text_field.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
+import 'package:recommendation_app/features/auth/utils/auth_validator.dart';
 import 'package:recommendation_app/features/auth/widgets/auth_header.dart';
 import 'package:recommendation_app/features/auth/widgets/auth_remember.dart';
 import 'package:recommendation_app/features/auth/widgets/auth_social_button.dart';
@@ -23,8 +25,9 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends State<AuthScreen> with AuthValidator {
   int _selectedTabIndex = 0;
+  bool _isSubmitting = false;
 
   // Login Keys & Controllers
   final _loginFormKey = GlobalKey<FormState>();
@@ -40,105 +43,71 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
-    // Clean up Login Controllers
     _emailController.dispose();
     _passwordController.dispose();
-
-    // Clean up Register Controllers
     _fullNameController.dispose();
     _registerEmailController.dispose();
     _registerPasswordController.dispose();
-
     super.dispose();
   }
 
-  // --- Login Validators ---
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Email tidak boleh kosong';
-    }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'Masukkan alamat email yang valid';
-    }
-    return null;
+  void _resetFormState() {
+    _emailController.clear();
+    _passwordController.clear();
+    _fullNameController.clear();
+    _registerEmailController.clear();
+    _registerPasswordController.clear();
+    _loginFormKey.currentState?.reset();
+    _registerFormKey.currentState?.reset();
+    setState(() {
+      _rememberMe = false;
+    });
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Kata sandi tidak boleh kosong';
+  Future<void> _executeAuthAction({
+    required Future<bool> Function() action,
+  }) async {
+    if (_isSubmitting) return;
+    _isSubmitting = true;
+
+    FocusScope.of(context).unfocus();
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final success = await action();
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        context.goNamed(AppRouter.homeName);
+      } else if (authProvider.errorMessage != null) {
+        _showErrorSnackBar(authProvider.errorMessage!);
+        authProvider.clearErrorMessage();
+      }
+    } finally {
+      if (mounted) _isSubmitting = false;
     }
-    if (value.length < 6) {
-      return 'Kata sandi minimal harus 6 karakter';
-    }
-    return null;
   }
 
-  // --- Register Validators ---
-  String? _validateFullName(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Nama lengkap tidak boleh kosong';
-    }
-    return null;
-  }
-
-  String? _validateRegisterEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Email tidak boleh kosong';
-    }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-      return 'Masukkan alamat email yang valid';
-    }
-    return null;
-  }
-
-  String? _validateRegisterPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Kata sandi tidak boleh kosong';
-    }
-    if (value.length < 6) {
-      return 'Kata sandi minimal harus 6 karakter';
-    }
-    return null;
-  }
-
-  // --- Auth Handlers ---
-  Future<void> _handleLogin() async {
+  Future<void> _tapToLogin() async {
     if (!_loginFormKey.currentState!.validate()) return;
-
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.signIn(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
+    await _executeAuthAction(
+      action: () => context.read<AuthProvider>().signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      ),
     );
-
-    if (!mounted) return;
-
-    if (success) {
-      context.go('/home');
-    } else if (authProvider.errorMessage != null) {
-      _showErrorSnackBar(authProvider.errorMessage!);
-      authProvider.clearErrorMessage();
-    }
   }
 
-  Future<void> _handleRegister() async {
+  Future<void> _tapToRegister() async {
     if (!_registerFormKey.currentState!.validate()) return;
-
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.signUp(
-      email: _registerEmailController.text.trim(),
-      password: _registerPasswordController.text,
-      namaLengkap: _fullNameController.text.trim(),
+    await _executeAuthAction(
+      action: () => context.read<AuthProvider>().signUp(
+        namaLengkap: _fullNameController.text.trim(),
+        email: _registerEmailController.text.trim(),
+        password: _registerPasswordController.text,
+      ),
     );
-
-    if (!mounted) return;
-
-    if (success) {
-      context.go('/home');
-    } else if (authProvider.errorMessage != null) {
-      _showErrorSnackBar(authProvider.errorMessage!);
-      authProvider.clearErrorMessage();
-    }
   }
 
   void _showErrorSnackBar(String message) {
@@ -155,9 +124,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final isLoading = authProvider.isLoading;
-
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
       body: Column(
@@ -189,7 +155,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         setState(() {
                           _selectedTabIndex = index;
                         });
-                        // Bersihkan error saat pindah tab
+                        _resetFormState();
                         context.read<AuthProvider>().clearErrorMessage();
                       },
                     ),
@@ -208,7 +174,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               hintText: 'Masukkan email Anda',
                               keyboardType: TextInputType.emailAddress,
                               prefixIcon: HugeIcons.strokeRoundedMail01,
-                              validator: _validateEmail,
+                              validator: validateEmail,
                             ),
                             AppSpacing.v20,
                             AppTextField(
@@ -217,7 +183,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               hintText: 'Kata sandi minimal 6 karakter',
                               isPassword: true,
                               prefixIcon: HugeIcons.strokeRoundedLockKey,
-                              validator: _validatePassword,
+                              validator: validatePassword,
                             ),
                             AppSpacing.v24,
                             AuthRemember(
@@ -230,13 +196,19 @@ class _AuthScreenState extends State<AuthScreen> {
                               onForgotPasswordTap: () {},
                             ),
                             AppSpacing.v24,
-                            AppButton.primary(
-                              title: 'Log In',
-                              borderRadius: AppRadius.br32,
-                              isLoading: isLoading,
-                              onTap: isLoading ? null : _handleLogin,
+
+                            Selector<AuthProvider, bool>(
+                              selector: (_, provider) => provider.isLoading,
+                              builder: (context, isLoading, _) =>
+                                  AppButton.primary(
+                                    title: 'Log In',
+                                    borderRadius: AppRadius.br32,
+                                    isLoading: isLoading,
+                                    onTap: isLoading ? null : _tapToLogin,
+                                  ),
                             ),
                             AppSpacing.v32,
+
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
@@ -265,7 +237,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               label: 'Nama Lengkap',
                               hintText: 'Masukkan nama lengkap Anda',
                               prefixIcon: HugeIcons.strokeRoundedUser,
-                              validator: _validateFullName,
+                              validator: validateFullName,
                             ),
                             AppSpacing.v20,
                             AppTextField(
@@ -274,7 +246,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               hintText: 'Masukkan email Anda',
                               keyboardType: TextInputType.emailAddress,
                               prefixIcon: HugeIcons.strokeRoundedMail01,
-                              validator: _validateRegisterEmail,
+                              validator: validateEmail,
                             ),
                             AppSpacing.v20,
                             AppTextField(
@@ -283,16 +255,22 @@ class _AuthScreenState extends State<AuthScreen> {
                               hintText: 'Kata sandi minimal 6 karakter',
                               isPassword: true,
                               prefixIcon: HugeIcons.strokeRoundedLockKey,
-                              validator: _validateRegisterPassword,
+                              validator: validatePassword,
                             ),
                             AppSpacing.v32,
-                            AppButton.primary(
-                              title: 'Register',
-                              borderRadius: AppRadius.br32,
-                              isLoading: isLoading,
-                              onTap: isLoading ? null : _handleRegister,
+
+                            Selector<AuthProvider, bool>(
+                              selector: (_, provider) => provider.isLoading,
+                              builder: (context, isLoading, _) =>
+                                  AppButton.primary(
+                                    title: 'Register',
+                                    borderRadius: AppRadius.br32,
+                                    isLoading: isLoading,
+                                    onTap: isLoading ? null : _tapToRegister,
+                                  ),
                             ),
                             AppSpacing.v32,
+
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,

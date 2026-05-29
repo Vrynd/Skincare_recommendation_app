@@ -4,40 +4,42 @@ import 'package:recommendation_app/features/auth/screens/auth_screen.dart';
 import 'package:recommendation_app/features/home/screens/home_screen.dart';
 
 class AppRouter {
-  static const String login = '/login';
-  static const String register = '/register';
-  static const String forgotPassword = '/forgot-password';
-  static const String home = '/home';
+  // Rute Path Fisik
+  static const String loginPath = '/login';
+  static const String registerPath = '/register';
+  static const String forgotPasswordPath = '/forgot-password';
+  static const String homePath = '/home';
 
-  /// Membuat GoRouter yang reaktif terhadap perubahan status autentikasi.
-  /// Menggunakan `refreshListenable` agar redirect dievaluasi ulang
-  /// setiap kali `AuthProvider` memanggil `notifyListeners()`.
+  // Rute Nama Logis (Named Routing)
+  static const String loginName = 'login';
+  static const String registerName = 'register';
+  static const String forgotPasswordName = 'forgot-password';
+  static const String homeName = 'home';
+
   static GoRouter createRouter(AuthProvider authProvider) {
     return GoRouter(
-      initialLocation: login,
+      initialLocation: loginPath,
       refreshListenable: authProvider,
       redirect: (context, state) {
-        final isLoggedIn = authProvider.isAuthenticated;
-        final isOnAuthPage = state.matchedLocation == login;
-
-        // Jika sedang loading (inisialisasi awal), jangan redirect
         if (authProvider.isLoading) return null;
 
-        // User sudah login tapi masih di halaman auth → arahkan ke home
-        if (isLoggedIn && isOnAuthPage) return home;
+        final isLoggedIn = authProvider.isAuthenticated;
+        final isOnAuthPage = state.matchedLocation == loginPath;
 
-        // User belum login tapi mencoba akses halaman selain auth → arahkan ke login
-        if (!isLoggedIn && !isOnAuthPage) return login;
-
-        return null;
+        if (isLoggedIn) {
+          return isOnAuthPage ? homePath : null;
+        }
+        return isOnAuthPage ? null : loginPath;
       },
       routes: [
         GoRoute(
-          path: login,
+          path: loginPath,
+          name: loginName,
           builder: (context, state) => const AuthScreen(),
         ),
         GoRoute(
-          path: home,
+          path: homePath,
+          name: homeName,
           builder: (context, state) => const HomeScreen(),
         ),
       ],

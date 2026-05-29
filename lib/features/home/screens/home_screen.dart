@@ -6,6 +6,7 @@ import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_button.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
+import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
@@ -133,7 +134,7 @@ class HomeScreen extends StatelessWidget {
                 onTap: () async {
                   await authProvider.signOut();
                   if (context.mounted) {
-                    context.go('/login');
+                    context.goNamed(AppRouter.loginName);
                   }
                 },
               ),
