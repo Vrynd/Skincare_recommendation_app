@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_button.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
@@ -14,6 +13,7 @@ import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_greeting.dart';
 import 'package:recommendation_app/features/home/widgets/home_location.dart';
+import 'package:recommendation_app/features/home/widgets/home_uv_index.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -71,13 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const HomeLocation(),
-                  AppContainer(
-                    height: 150,
-                    borderRadius: AppRadius.br32,
-                    color: AppColors.darkBackground,
-                    showShadow: false,
-                    // showBorder: false,
-                  ),
+                  const HomeUVIndex(),
                 ],
               ),
             ),
