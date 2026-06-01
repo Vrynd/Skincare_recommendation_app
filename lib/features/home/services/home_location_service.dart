@@ -1,7 +1,48 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeLocationService {
+  static const String _keyAddress = 'cached_location_address';
+  static const String _keyLat = 'cached_location_latitude';
+  static const String _keyLng = 'cached_location_longitude';
+
+  /// Membaca data lokasi yang tersimpan di cache lokal SharedPreferences
+  Future<Map<String, dynamic>?> getCachedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final address = prefs.getString(_keyAddress);
+      final lat = prefs.getDouble(_keyLat);
+      final lng = prefs.getDouble(_keyLng);
+
+      if (address != null && lat != null && lng != null) {
+        return {
+          'address': address,
+          'latitude': lat,
+          'longitude': lng,
+        };
+      }
+    } catch (_) {
+      // Abaikan jika preferensi lokal gagal
+    }
+    return null;
+  }
+
+  /// Menyimpan data lokasi aktual ke cache lokal SharedPreferences
+  Future<void> saveLocationCache({
+    required String address,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyAddress, address);
+      await prefs.setDouble(_keyLat, latitude);
+      await prefs.setDouble(_keyLng, longitude);
+    } catch (_) {
+      // Abaikan jika preferensi lokal gagal
+    }
+  }
   /// Memeriksa apakah GPS aktif dan meminta izin akses lokasi jika belum diberikan
   Future<bool> checkPermissionAndServices() async {
     bool serviceEnabled;
