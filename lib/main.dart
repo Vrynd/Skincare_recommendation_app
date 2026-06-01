@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
+import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => HomeLocationProvider()),
       ],
       child: MyApp(authProvider: authProvider),
     ),

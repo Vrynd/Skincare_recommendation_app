@@ -107,8 +107,8 @@ class _GreetingAvatar extends StatelessWidget {
     final avatarColor = _getAvatarColor(name);
 
     return Container(
-      width: 50,
-      height: 50,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: avatarColor,
