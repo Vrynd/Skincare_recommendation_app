@@ -5,6 +5,7 @@ import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
+import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_uv_gauge.dart';
 
@@ -15,12 +16,14 @@ class HomeUVIndex extends StatelessWidget {
   Widget build(BuildContext context) {
     final locationProvider = context.watch<HomeLocationProvider>();
 
-    final currentHour = DateTime.now().hour;
-    final uvIndex = _calculateMockUVIndex(currentHour);
-    final riskLevel = _getRiskLevel(uvIndex);
-    final riskColor = _getRiskColor(uvIndex);
-    final peakTimeRange = _calculateMockPeakTimeRange(currentHour);
-    final durationText = _calculateMockDuration(currentHour);
+    final uvIndex = locationProvider.uvIndex;
+    final UVRiskLevel uvRiskLevel = locationProvider.uvRiskLevel;
+    final riskLevel = uvRiskLevel.name;
+    final riskColor = uvRiskLevel.color;
+    final peakTimeRange = "${uvRiskLevel.recommendedSpf}+ SPF";
+    final durationText = locationProvider.uvDurationText;
+
+    final isAnyLoading = locationProvider.isLoading || locationProvider.isUvLoading;
 
     return AppContainer(
       borderRadius: AppRadius.br32,
@@ -28,7 +31,7 @@ class HomeUVIndex extends StatelessWidget {
       showShadow: false,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: AnimatedOpacity(
-        opacity: locationProvider.isLoading ? 0.6 : 1.0,
+        opacity: isAnyLoading ? 0.6 : 1.0,
         duration: const Duration(milliseconds: 300),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,41 +70,6 @@ class HomeUVIndex extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  double _calculateMockUVIndex(int hour) {
-    if (hour < 6 || hour >= 18) return 6.0;
-    if (hour >= 11 && hour <= 13) return 8.5;
-    if (hour >= 9 && hour < 11) return 5.2;
-    if (hour > 13 && hour <= 15) return 6.0;
-    if (hour >= 6 && hour < 9) return 1.5;
-    return 6.0;
-  }
-
-  Color _getRiskColor(double index) {
-    if (index <= 2.0) return AppColors.accentSage;
-    if (index <= 5.0) return AppColors.accentAmber;
-    if (index <= 7.0) return AppColors.accentOrange;
-    if (index <= 10.0) return AppColors.accentRed;
-    return AppColors.accentLavender;
-  }
-
-  String _getRiskLevel(double index) {
-    if (index <= 2.0) return 'Rendah';
-    if (index <= 5.0) return 'Sedang';
-    if (index <= 7.0) return 'Tinggi';
-    if (index <= 10.0) return 'Sangat Tinggi';
-    return 'Ekstrem';
-  }
-
-  String _calculateMockPeakTimeRange(int hour) {
-    if (hour < 6 || hour >= 18) return '11:00 - 13:00';
-    return '11:00 - 13:00';
-  }
-
-  String _calculateMockDuration(int hour) {
-    if (hour < 6 || hour >= 18) return '2.5 Jam';
-    return '2.5 Jam';
   }
 }
 
@@ -157,13 +125,13 @@ class _UVInfoSection extends StatelessWidget {
         _InfoRow(
           icon: HugeIcons.strokeRoundedSun02,
           iconColor: AppColors.accentOrange,
-          title: 'Jam Puncak UV',
+          title: 'Proteksi',
           value: peakTimeRange,
         ),
         _InfoRow(
           icon: HugeIcons.strokeRoundedHourglass,
           iconColor: AppColors.accentBlue,
-          title: 'Durasi Bahaya',
+          title: 'Terbakar matahari',
           value: durationText,
         ),
       ],

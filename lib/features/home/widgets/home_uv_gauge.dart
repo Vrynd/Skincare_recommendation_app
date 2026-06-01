@@ -35,25 +35,12 @@ class HomeUVGauge extends StatelessWidget {
             painter: _GaugePainter(value: progress, color: riskColor),
           ),
 
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                _formatUVIndex(uvIndex),
-                style: context.text.headlineMedium?.copyWith(
-                  color: context.colors.surface,
-                  fontSize: 40,
-                ),
-              ),
-              Text(
-                '/12',
-                style: context.text.labelLarge?.copyWith(
-                  color: context.colors.surface.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
+          Text(
+            _formatUVIndex(uvIndex),
+            style: context.text.headlineMedium?.copyWith(
+              color: context.colors.surface,
+              fontSize: 40,
+            ),
           ),
         ],
       ),
