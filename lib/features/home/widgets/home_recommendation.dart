@@ -6,7 +6,7 @@ import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_separator.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
-import 'package:recommendation_app/features/rekomendasi/models/rekomendasi_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
 
 class HomeRecommendation extends StatelessWidget {
   final RecommendationModel recommendation;

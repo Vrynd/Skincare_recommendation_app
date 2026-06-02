@@ -41,7 +41,6 @@ class _CreateRecommendationScreenState
     'Kulit Dehidrasi',
     'Kerutan & Garis Halus',
     'Warna Kulit Tidak Merata',
-    'Sensitivitas Tinggi',
   ];
 
   final List<String> _usageTimes = [

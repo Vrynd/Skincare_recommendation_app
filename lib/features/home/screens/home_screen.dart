@@ -12,7 +12,7 @@ import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_category.dart';
 import 'package:recommendation_app/features/home/widgets/home_recommendation.dart';
-import 'package:recommendation_app/features/rekomendasi/provider/rekomendasi_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_greeting.dart';
 import 'package:recommendation_app/features/home/widgets/home_location.dart';
 import 'package:recommendation_app/features/home/widgets/home_uv_index.dart';
@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         final auth = context.read<AuthProvider>();
         final location = context.read<HomeLocationProvider>();
-        final recommendation = context.read<RekomendasiProvider>();
+        final recommendation = context.read<RecommendationProvider>();
 
         // Mendeteksi lokasi & UV Indeks uv
         location.fetchLocation();
@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildRecommendation(RekomendasiProvider recommendation) {
+  Widget _buildRecommendation(RecommendationProvider recommendation) {
     if (recommendation.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final recommendation = context.watch<RekomendasiProvider>();
+    final recommendation = context.watch<RecommendationProvider>();
     final user = auth.currentUser;
 
     return AppScaffold(

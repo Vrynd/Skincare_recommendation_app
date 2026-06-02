@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:recommendation_app/features/rekomendasi/models/rekomendasi_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
 import 'package:recommendation_app/features/rekomendasi/services/rekomendasi_service.dart';
 
 // Bertanggung jawab mengelola status pemuatan data dan riwayat rekomendasi.
-class RekomendasiProvider extends ChangeNotifier {
+class RecommendationProvider extends ChangeNotifier {
   final RekomendasiService _rekomendasiService = RekomendasiService();
 
   Map<String, int> _categoryCounts = {

@@ -6,7 +6,7 @@ import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
-import 'package:recommendation_app/features/rekomendasi/provider/rekomendasi_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/navigations/provider/navigation_provider.dart';
 
 void main() async {
@@ -26,7 +26,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => HomeLocationProvider()),
-        ChangeNotifierProvider(create: (_) => RekomendasiProvider()),
+        ChangeNotifierProvider(create: (_) => RecommendationProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: MyApp(authProvider: authProvider),

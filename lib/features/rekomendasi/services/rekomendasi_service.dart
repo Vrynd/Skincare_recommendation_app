@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:recommendation_app/features/rekomendasi/models/rekomendasi_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
 
 // Bertanggung jawab untuk melangsungkan komunikasi langsung dengan database Supabase.
 class RekomendasiService {
