@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
+import 'package:recommendation_app/core/widgets/app_empty_state.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
@@ -9,6 +11,7 @@ import 'package:recommendation_app/core/widgets/app_title.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_category.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/rekomendasi_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_greeting.dart';
 import 'package:recommendation_app/features/home/widgets/home_location.dart';
 import 'package:recommendation_app/features/home/widgets/home_uv_index.dart';
@@ -28,7 +31,18 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<HomeLocationProvider>().fetchLocation();
+        final auth = context.read<AuthProvider>();
+        final location = context.read<HomeLocationProvider>();
+        final recommendation = context.read<RekomendasiProvider>();
+
+        // Mendeteksi lokasi & UV Indeks uv
+        location.fetchLocation();
+
+        // Pengambilan jumlah kategori
+        final userId = auth.currentUser?.idUser;
+        if (userId != null) {
+          recommendation.fetchCategoryCounts(userId);
+        }
       }
     });
   }
@@ -48,8 +62,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.currentUser;
+    final auth = context.watch<AuthProvider>();
+    final recommendation = context.watch<RekomendasiProvider>();
+    final user = auth.currentUser;
 
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
@@ -95,37 +110,37 @@ class _HomeScreenState extends State<HomeScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.only(left:20),
+              padding: const EdgeInsets.only(left: 20),
               child: Row(
                 spacing: 8,
                 children: [
                   HomeCategory(
                     title: 'Cleanser',
-                    count: 4,
+                    count: recommendation.categoryCounts['Cleanser'] ?? 0,
                     isSelected: _selectedCategory == 'Cleanser',
                     onTap: () => setState(() => _selectedCategory = 'Cleanser'),
                   ),
                   HomeCategory(
                     title: 'Toner',
-                    count: 2,
+                    count: recommendation.categoryCounts['Toner'] ?? 0,
                     isSelected: _selectedCategory == 'Toner',
                     onTap: () => setState(() => _selectedCategory = 'Toner'),
                   ),
                   HomeCategory(
                     title: 'Serum',
-                    count: 3,
+                    count: recommendation.categoryCounts['Serum'] ?? 0,
                     isSelected: _selectedCategory == 'Serum',
                     onTap: () => setState(() => _selectedCategory = 'Serum'),
                   ),
                   HomeCategory(
                     title: 'Moisture',
-                    count: 2,
+                    count: recommendation.categoryCounts['Moisture'] ?? 0,
                     isSelected: _selectedCategory == 'Moisture',
                     onTap: () => setState(() => _selectedCategory = 'Moisture'),
                   ),
                   HomeCategory(
                     title: 'Sunscreen',
-                    count: 1,
+                    count: recommendation.categoryCounts['Sunscreen'] ?? 0,
                     isSelected: _selectedCategory == 'Sunscreen',
                     onTap: () =>
                         setState(() => _selectedCategory = 'Sunscreen'),
@@ -137,13 +152,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
-              child: AppContainer(
-                height: 350,
-                borderRadius: AppRadius.br32,
-                showShadow: false,
-                opacity: 0.8,
+              child: AppEmptyState(
+                height: 280,
+                icon: HugeIcons.strokeRoundedClock01,
+                title: 'Belum Ada Rekomendasi',
+                description:
+                    'Belum ada riwayat analisis kulit. Mulai rekomendasi pertama Anda untuk melihat hasilnya di sini',
               ),
-            )
+            ),
 
             // // Logout button
             // AppButton.danger(
