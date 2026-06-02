@@ -96,8 +96,7 @@ class _GreetingAvatar extends StatelessWidget {
         child: Text(
           _getInitials(name),
           style: context.text.titleLarge?.copyWith(
-            color: context.colors.primary,
-            fontWeight: FontWeight.bold,
+            color: context.colors.onSurface,
           ),
         ),
       ),

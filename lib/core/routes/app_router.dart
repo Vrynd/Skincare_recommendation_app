@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:recommendation_app/features/navigations/screens/navigation_screen.dart';
+import 'package:recommendation_app/features/rekomendasi/screens/create_recommendation_screen.dart';
 
 class AppRouter {
   // Rute Path Fisik
@@ -9,12 +10,14 @@ class AppRouter {
   static const String registerPath = '/register';
   static const String forgotPasswordPath = '/forgot-password';
   static const String homePath = '/home';
+  static const String createRecommendationPath = '/create-recommendation';
 
   // Rute Nama Logis (Named Routing)
   static const String loginName = 'login';
   static const String registerName = 'register';
   static const String forgotPasswordName = 'forgot-password';
   static const String homeName = 'home';
+  static const String createRecommendationName = 'create-recommendation';
 
   static GoRouter createRouter(AuthProvider authProvider) {
     return GoRouter(
@@ -41,6 +44,11 @@ class AppRouter {
           path: homePath,
           name: homeName,
           builder: (context, state) => const NavigationScreen(),
+        ),
+        GoRoute(
+          path: createRecommendationPath,
+          name: createRecommendationName,
+          builder: (context, state) => const CreateRecommendationScreen(),
         ),
       ],
     );

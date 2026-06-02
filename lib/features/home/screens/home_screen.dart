@@ -101,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.only(top: 20, bottom: 100),
+          padding: const EdgeInsets.only(top: 16, bottom: 48),
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
