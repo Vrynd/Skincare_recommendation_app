@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (recommendation.recommendations.isEmpty) {
       return const AppEmptyState(
-        height: 260,
+        height: 250,
         icon: HugeIcons.strokeRoundedClock01,
         title: 'Belum Ada Rekomendasi',
         description:

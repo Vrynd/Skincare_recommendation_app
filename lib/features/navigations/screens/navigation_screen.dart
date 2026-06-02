@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:recommendation_app/features/home/screens/home_screen.dart';
 import 'package:recommendation_app/features/navigations/provider/navigation_provider.dart';
 import 'package:recommendation_app/features/navigations/widgets/floating_dock.dart';
+import 'package:recommendation_app/features/navigations/widgets/add_dock.dart';
 
 class NavigationScreen extends StatelessWidget {
   const NavigationScreen({super.key});
@@ -27,9 +28,14 @@ class NavigationScreen extends StatelessWidget {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 48,
-            child: const Center(
-              child: FloatingDock(),
+            bottom: 50,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing:12,
+              children: const [
+                FloatingDock(),
+                AddDock(),
+              ],
             ),
           ),
         ],
