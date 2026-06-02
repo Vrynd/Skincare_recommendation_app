@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
-import 'package:recommendation_app/features/rekomendasi/services/rekomendasi_service.dart';
+import 'package:recommendation_app/features/rekomendasi/services/recommendation_service.dart';
 
 // Bertanggung jawab mengelola status pemuatan data dan riwayat rekomendasi.
 class RecommendationProvider extends ChangeNotifier {
-  final RekomendasiService _rekomendasiService = RekomendasiService();
+  final RecommendationService _recommendationService = RecommendationService();
 
   Map<String, int> _categoryCounts = {
     'Cleanser': 0,
@@ -32,8 +32,8 @@ class RecommendationProvider extends ChangeNotifier {
     try {
       // Jalankan query secara paralel agar performa muatan data maksimal
       final results = await Future.wait([
-        _rekomendasiService.fetchCategoryCounts(userId),
-        _rekomendasiService.fetchRecommendations(userId),
+        _recommendationService.fetchCategoryCounts(userId),
+        _recommendationService.fetchRecommendations(userId),
       ]);
 
       _categoryCounts = results[0] as Map<String, int>;
