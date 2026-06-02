@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
+
+import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
 import 'package:recommendation_app/features/rekomendasi/services/recommendation_service.dart';
 
-// Bertanggung jawab mengelola status pemuatan data dan riwayat rekomendasi.
+/// Provider yang mengelola status state untuk formulir dan riwayat rekomendasi skincare.
 class RecommendationProvider extends ChangeNotifier {
   final RecommendationService _recommendationService = RecommendationService();
 
+  // State Pilihan Formulir (Dinamis)
+  List<SkinTypeModel> _skinTypes = [];
+  List<SkinConcernModel> _skinConcerns = [];
+  List<IngredientModel> _ingredients = [];
+
+  // State Riwayat Rekomendasi
   Map<String, int> _categoryCounts = {
     'Cleanser': 0,
     'Toner': 0,
@@ -14,16 +24,81 @@ class RecommendationProvider extends ChangeNotifier {
     'Sunscreen': 0,
   };
   List<RecommendationModel> _recommendations = [];
+
+  // State Umum Pemuatan & Error
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Getters
+  // Getters Opsi Formulir
+  List<SkinTypeModel> get skinTypes => _skinTypes;
+  List<SkinConcernModel> get skinConcerns => _skinConcerns;
+  List<IngredientModel> get ingredients => _ingredients;
+
+  // Getters Riwayat & Status
   Map<String, int> get categoryCounts => _categoryCounts;
   List<RecommendationModel> get recommendations => _recommendations;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Memperbarui jumlah produk unik per kategori dan riwayat rekomendasi dengan mengambil data terbaru
+  /// Memuat semua data master opsi formulir
+  Future<void> loadFormOptions() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _recommendationService.fetchSkinTypes(),
+        _recommendationService.fetchSkinConcerns(),
+        _recommendationService.fetchIngredients(),
+      ]);
+
+      _skinTypes = results[0] as List<SkinTypeModel>;
+      _skinConcerns = results[1] as List<SkinConcernModel>;
+      _ingredients = results[2] as List<IngredientModel>;
+    } catch (e) {
+      _errorMessage = 'Gagal memuat pilihan formulir rekomendasi.';
+      debugPrint('RecommendationProvider loadFormOptions error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Mengirimkan data formulir rekomendasi terpilih pengguna
+  Future<String?> submitRecommendation({
+    required String userId,
+    required String skinTypeId,
+    required String usageTime,
+    required String allergyStatus,
+    required List<String> selectedConcernIds,
+    required List<String> avoidedIngredientIds,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final sessionId = await _recommendationService.submitRecommendations(
+        userId: userId,
+        skinTypeId: skinTypeId,
+        usageTime: usageTime,
+        allergyStatus: allergyStatus,
+        selectedConcernIds: selectedConcernIds,
+        avoidedIngredientIds: avoidedIngredientIds,
+      );
+      return sessionId;
+    } catch (e) {
+      _errorMessage = 'Gagal mengirim formulir rekomendasi Anda.';
+      debugPrint('RecommendationProvider submitRecommendation error: $e');
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Memperbarui jumlah produk unik per kategori dan riwayat rekomendasi dengan mengambil data terbaru
   Future<void> fetchCategoryCounts(String userId) async {
     _isLoading = true;
     _errorMessage = null;
@@ -40,7 +115,7 @@ class RecommendationProvider extends ChangeNotifier {
       _recommendations = results[1] as List<RecommendationModel>;
     } catch (e) {
       _errorMessage = 'Gagal memuat riwayat rekomendasi.';
-      debugPrint('RekomendasiProvider fetchCategoryCounts error: $e');
+      debugPrint('RecommendationProvider fetchCategoryCounts error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

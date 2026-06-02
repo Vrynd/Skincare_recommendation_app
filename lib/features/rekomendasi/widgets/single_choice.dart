@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_divider.dart';
@@ -14,6 +15,7 @@ class SingleChoice<T> extends StatelessWidget {
   final T? selectedOption;
   final ValueChanged<T> onOptionSelected;
   final String Function(T option) optionLabelBuilder;
+  final bool isLoading;
 
   const SingleChoice({
     super.key,
@@ -23,6 +25,7 @@ class SingleChoice<T> extends StatelessWidget {
     required this.selectedOption,
     required this.onOptionSelected,
     required this.optionLabelBuilder,
+    this.isLoading = false,
   });
 
   @override
@@ -81,32 +84,66 @@ class SingleChoice<T> extends StatelessWidget {
           AppSpacing.v16,
 
           // Kontainer Pilihan Dalam (Inner Card)
-          AppContainer(
-            borderRadius: AppRadius.br24,
-            color: context.colors.onSurfaceVariant,
-            opacity: 0.04,
-            borderColor: context.colors.outline.withValues(alpha: 0.1),
-            padding: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(options.length, (index) {
-                final option = options[index];
-                final isSelected = option == selectedOption;
-                final isLast = index == options.length - 1;
+          Skeletonizer(
+            enabled: isLoading,
+            child: AppContainer(
+              borderRadius: AppRadius.br24,
+              color: context.colors.onSurfaceVariant,
+              opacity: 0.04,
+              borderColor: context.colors.outline.withValues(alpha: 0.1),
+              padding: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: isLoading && options.isEmpty
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(3, (index) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Text('Opsi Pilihan Kulit'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (index < 2) const AppDivider.dashed(thickness: 0.8),
+                          ],
+                        );
+                      }),
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(options.length, (index) {
+                        final option = options[index];
+                        final isSelected = option == selectedOption;
+                        final isLast = index == options.length - 1;
 
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ChoiceRow(
-                      label: optionLabelBuilder(option),
-                      isSelected: isSelected,
-                      onTap: () => onOptionSelected(option),
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _ChoiceRow(
+                              label: optionLabelBuilder(option),
+                              isSelected: isSelected,
+                              onTap: () => onOptionSelected(option),
+                            ),
+                            if (!isLast) const AppDivider.dashed(thickness: 0.8),
+                          ],
+                        );
+                      }),
                     ),
-                    if (!isLast) const AppDivider.dashed(thickness: 0.8),
-                  ],
-                );
-              }),
             ),
           ),
         ],
