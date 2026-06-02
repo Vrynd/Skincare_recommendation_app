@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/auth/presentation/screens/auth_screen.dart';
-import 'package:recommendation_app/features/home/screens/home_screen.dart';
+import 'package:recommendation_app/features/navigations/screens/navigation_screen.dart';
 
 class AppRouter {
   // Rute Path Fisik
@@ -40,7 +40,7 @@ class AppRouter {
         GoRoute(
           path: homePath,
           name: homeName,
-          builder: (context, state) => const HomeScreen(),
+          builder: (context, state) => const NavigationScreen(),
         ),
       ],
     );

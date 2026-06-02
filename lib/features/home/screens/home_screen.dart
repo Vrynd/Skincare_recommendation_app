@@ -61,6 +61,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildRecommendation(RekomendasiProvider recommendation) {
+    if (recommendation.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (recommendation.recommendations.isEmpty) {
+      return const AppEmptyState(
+        height: 260,
+        icon: HugeIcons.strokeRoundedClock01,
+        title: 'Belum Ada Rekomendasi',
+        description:
+            'Belum ada riwayat. Mulai rekomendasi pertama Anda untuk melihatnya di sini',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: recommendation.recommendations
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: HomeRecommendation(recommendation: item),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -72,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.only(top: 24, bottom: 48),
+          padding: const EdgeInsets.only(top: 20, bottom: 100),
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
@@ -108,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             AppSpacing.v8,
+
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -153,41 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
-              child: recommendation.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : (recommendation.recommendations.isEmpty
-                        ? const AppEmptyState(
-                            height: 260,
-                            icon: HugeIcons.strokeRoundedClock01,
-                            title: 'Belum Ada Rekomendasi',
-                            description:
-                                'Belum ada riwayat analisis kulit. Mulai rekomendasi pertama Anda untuk melihat hasilnya di sini',
-                          )
-                        : Column(
-                            children: recommendation.recommendations.map((
-                              item,
-                            ) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: HomeRecommendation(recommendation: item),
-                              );
-                            }).toList(),
-                          )),
+              child: _buildRecommendation(recommendation),
             ),
-
-            // // Logout button
-            // AppButton.danger(
-            //   title: 'Keluar',
-            //   icon: HugeIcons.strokeRoundedLogout03,
-            //   borderRadius: AppRadius.br32,
-            //   isLoading: authProvider.isLoading,
-            //   onTap: () async {
-            //     await authProvider.signOut();
-            //     if (context.mounted) {
-            //       context.goNamed(AppRouter.loginName);
-            //     }
-            //   },
-            // ),
           ],
         ),
       ),

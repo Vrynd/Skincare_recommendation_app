@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
+import 'package:recommendation_app/core/widgets/app_container.dart';
 
 class HomeGreeting extends StatelessWidget {
   final String greeting;
@@ -14,11 +14,11 @@ class HomeGreeting extends StatelessWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      spacing: 16,
       children: [
         Expanded(
           child: _GreetingText(greeting: greeting, displayName: nameToDisplay),
         ),
-        const SizedBox(width: 16),
         _GreetingAvatar(name: nameToDisplay),
       ],
     );
@@ -73,26 +73,6 @@ class _GreetingAvatar extends StatelessWidget {
 
   const _GreetingAvatar({required this.name});
 
-  static const List<Color> _avatarColors = [
-    AppColors.accentPurple,
-    AppColors.accentOrange,
-    AppColors.accentPink,
-    AppColors.accentIndigo,
-    AppColors.accentBlue,
-    AppColors.accentTeal,
-    AppColors.accentAmber,
-    AppColors.accentRed,
-    AppColors.accentLavender,
-    AppColors.accentSage,
-    AppColors.accentCyan,
-  ];
-
-  Color _getAvatarColor(String name) {
-    if (name.trim().isEmpty) return _avatarColors[0];
-    final hash = name.hashCode.abs();
-    return _avatarColors[hash % _avatarColors.length];
-  }
-
   String _getInitials(String name) {
     if (name.trim().isEmpty) return 'P';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -104,28 +84,20 @@ class _GreetingAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatarColor = _getAvatarColor(name);
-
-    return Container(
+    return AppContainer(
       width: 48,
       height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: avatarColor,
-        border: Border.all(color: context.colors.onPrimary, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.shadow.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      shape: BoxShape.circle,
+      opacity: 0.8,
+      showBorder: false,
+      showShadow: false,
+      padding: EdgeInsets.zero,
       child: Center(
         child: Text(
           _getInitials(name),
           style: context.text.titleLarge?.copyWith(
-            color: context.colors.onPrimary,
+            color: context.colors.primary,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
