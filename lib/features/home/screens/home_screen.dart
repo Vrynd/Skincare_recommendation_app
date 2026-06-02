@@ -11,6 +11,7 @@ import 'package:recommendation_app/core/widgets/app_title.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_category.dart';
+import 'package:recommendation_app/features/home/widgets/home_recommendation.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/rekomendasi_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_greeting.dart';
 import 'package:recommendation_app/features/home/widgets/home_location.dart';
@@ -152,13 +153,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
-              child: AppEmptyState(
-                height: 280,
-                icon: HugeIcons.strokeRoundedClock01,
-                title: 'Belum Ada Rekomendasi',
-                description:
-                    'Belum ada riwayat analisis kulit. Mulai rekomendasi pertama Anda untuk melihat hasilnya di sini',
-              ),
+              child: recommendation.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : (recommendation.recommendations.isEmpty
+                        ? const AppEmptyState(
+                            height: 260,
+                            icon: HugeIcons.strokeRoundedClock01,
+                            title: 'Belum Ada Rekomendasi',
+                            description:
+                                'Belum ada riwayat analisis kulit. Mulai rekomendasi pertama Anda untuk melihat hasilnya di sini',
+                          )
+                        : Column(
+                            children: recommendation.recommendations.map((
+                              item,
+                            ) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: HomeRecommendation(recommendation: item),
+                              );
+                            }).toList(),
+                          )),
             ),
 
             // // Logout button
