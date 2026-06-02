@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
+import 'package:recommendation_app/core/widgets/app_spacing.dart';
 
 class AppNavigation extends StatelessWidget implements PreferredSizeWidget {
   /// Judul halaman. Jika null, akan ditentukan secara otomatis secara dinamis.
@@ -43,9 +44,10 @@ class AppNavigation extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final derivedTitle = title ?? _deriveTitle(context);
 
-    return Container(
+    return AppContainer.flat(
       height: height,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.zero,
+      color: Colors.transparent,
       child: Row(
         children: [
           if (showBackButton)
@@ -61,9 +63,9 @@ class AppNavigation extends StatelessWidget implements PreferredSizeWidget {
             )
           else
             SizedBox(width: buttonSize, height: buttonSize),
-          const SizedBox(width: 12),
+          AppSpacing.h12,
           Expanded(child: _NavigationTitle(title: derivedTitle)),
-          const SizedBox(width: 12),
+          AppSpacing.h12,
           rightAction ??
               _NavigationCircleButton(size: buttonSize, seamless: seamless),
         ],
