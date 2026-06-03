@@ -3,6 +3,7 @@ import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/auth/presentation/screens/auth_screen.dart';
 import 'package:recommendation_app/features/navigations/screens/navigation_screen.dart';
 import 'package:recommendation_app/features/rekomendasi/screens/create_recommendation_screen.dart';
+import 'package:recommendation_app/features/rekomendasi/screens/result_recommendation_screen.dart';
 
 class AppRouter {
   // Rute Path Fisik
@@ -11,6 +12,7 @@ class AppRouter {
   static const String forgotPasswordPath = '/forgot-password';
   static const String homePath = '/home';
   static const String createRecommendationPath = '/create-recommendation';
+  static const String recommendationResultPath = '/recommendation-result';
 
   // Rute Nama Logis (Named Routing)
   static const String loginName = 'login';
@@ -18,6 +20,7 @@ class AppRouter {
   static const String forgotPasswordName = 'forgot-password';
   static const String homeName = 'home';
   static const String createRecommendationName = 'create-recommendation';
+  static const String recommendationResultName = 'recommendation-result';
 
   static GoRouter createRouter(AuthProvider authProvider) {
     return GoRouter(
@@ -49,6 +52,14 @@ class AppRouter {
           path: createRecommendationPath,
           name: createRecommendationName,
           builder: (context, state) => const CreateRecommendationScreen(),
+        ),
+        GoRoute(
+          path: '$recommendationResultPath/:sessionId',
+          name: recommendationResultName,
+          builder: (context, state) {
+            final sessionId = state.pathParameters['sessionId']!;
+            return ResultRecommendationScreen(sessionId: sessionId);
+          },
         ),
       ],
     );

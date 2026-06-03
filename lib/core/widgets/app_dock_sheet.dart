@@ -9,24 +9,28 @@ class AppDockSheet extends StatelessWidget {
   final String title;
   final String description;
   final String buttonTitle;
-  final bool switchValue;
-  final ValueChanged<bool> onSwitchChanged;
+  final bool? switchValue;
+  final ValueChanged<bool>? onSwitchChanged;
   final VoidCallback? onButtonTap;
   final bool isButtonLoading;
+  final bool showSwitch;
 
   const AppDockSheet({
     super.key,
     required this.title,
     required this.description,
     required this.buttonTitle,
-    required this.switchValue,
-    required this.onSwitchChanged,
+    this.switchValue,
+    this.onSwitchChanged,
     this.onButtonTap,
     this.isButtonLoading = false,
+    this.showSwitch = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveSwitchValue = showSwitch ? (switchValue ?? false) : true;
+
     return AppContainer(
       width: double.infinity,
       borderRadius: AppRadius.only(topLeft: 32, topRight: 32),
@@ -68,17 +72,18 @@ class AppDockSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                _DockSwitch(value: switchValue, onChanged: onSwitchChanged),
+                if (showSwitch && switchValue != null && onSwitchChanged != null)
+                  _DockSwitch(value: switchValue!, onChanged: onSwitchChanged!),
               ],
             ),
             const AppDivider.dashed(),
             AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
-              opacity: switchValue ? 1.0 : 0.4,
+              opacity: effectiveSwitchValue ? 1.0 : 0.4,
               child: AppButton(
                 title: buttonTitle,
                 borderRadius: AppRadius.br32,
-                onTap: switchValue ? onButtonTap : null,
+                onTap: effectiveSwitchValue ? onButtonTap : null,
                 isLoading: isButtonLoading,
               ),
             ),

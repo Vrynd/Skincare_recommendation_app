@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
-
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
@@ -25,6 +24,10 @@ class RecommendationProvider extends ChangeNotifier {
   };
   List<RecommendationModel> _recommendations = [];
 
+  // State Hasil Rekomendasi Sesi Terkini
+  Map<String, dynamic>? _currentSessionDetails;
+  List<Map<String, dynamic>> _currentSessionResults = [];
+
   // State Umum Pemuatan & Error
   bool _isLoading = false;
   bool _isSubmitting = false;
@@ -42,8 +45,20 @@ class RecommendationProvider extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
-  /// Memuat semua data master opsi formulir
-  Future<void> loadFormOptions() async {
+  // Getters Hasil Rekomendasi Sesi Terkini
+  Map<String, dynamic>? get currentSessionDetails => _currentSessionDetails;
+  List<Map<String, dynamic>> get currentSessionResults => _currentSessionResults;
+
+  /// Memuat semua data master opsi formulir (dengan caching RAM)
+  Future<void> loadFormOptions({bool force = false}) async {
+    // Jika tidak force refresh dan data sudah ada di RAM, langsung return
+    if (!force &&
+        _skinTypes.isNotEmpty &&
+        _skinConcerns.isNotEmpty &&
+        _ingredients.isNotEmpty) {
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -128,6 +143,31 @@ class RecommendationProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Gagal memuat riwayat rekomendasi.';
       debugPrint('RecommendationProvider fetchCategoryCounts error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Memuat hasil rekomendasi untuk sesi tertentu
+  Future<void> loadSessionResults(String sessionId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _currentSessionDetails = null;
+    _currentSessionResults = [];
+    notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _recommendationService.fetchSessionDetails(sessionId),
+        _recommendationService.fetchSessionResults(sessionId),
+      ]);
+
+      _currentSessionDetails = results[0] as Map<String, dynamic>?;
+      _currentSessionResults = results[1] as List<Map<String, dynamic>>;
+    } catch (e) {
+      _errorMessage = 'Gagal memuat hasil rekomendasi.';
+      debugPrint('RecommendationProvider loadSessionResults error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

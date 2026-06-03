@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_dock_sheet.dart';
 import 'package:recommendation_app/core/widgets/app_navigation.dart';
@@ -108,6 +110,8 @@ class _CreateRecommendationScreenState
         context,
         'Rekomendasi berhasil dibuat berdasarkan analisis kulit Anda.',
       );
+      // Arahkan pengguna ke layar hasil rekomendasi
+      context.pushReplacement('${AppRouter.recommendationResultPath}/$sessionId');
     } else {
       AppSnackBar.showError(
         context,

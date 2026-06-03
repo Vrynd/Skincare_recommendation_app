@@ -223,4 +223,95 @@ class RecommendationService {
       rethrow;
     }
   }
+
+  /// Mengambil rincian sesi rekomendasi tertentu berdasarkan sessionId
+  Future<Map<String, dynamic>?> fetchSessionDetails(String sessionId) async {
+    try {
+      // 1. Ambil detail sesi utama
+      final sessionData = await _supabase
+          .from('recommendation_sessions')
+          .select('''
+            recommendation_session_id,
+            recommendation_code,
+            usage_time,
+            allergy_status,
+            location_name,
+            latitude,
+            longitude,
+            uv_index,
+            uv_risk_level,
+            skin_types (
+              skin_type_name
+            )
+          ''')
+          .eq('recommendation_session_id', sessionId)
+          .single();
+
+      // 2. Ambil masalah kulit terpilih
+      final List<dynamic> concernsData = await _supabase
+          .from('recommendation_concerns')
+          .select('skin_concerns (skin_concern_name)')
+          .eq('recommendation_session_id', sessionId);
+      
+      final List<String> concerns = concernsData
+          .map((item) {
+            final concern = item['skin_concerns'] as Map<String, dynamic>?;
+            return concern != null ? concern['skin_concern_name'] as String : '';
+          })
+          .where((name) => name.isNotEmpty)
+          .toList();
+
+      // 3. Ambil bahan kosmetik yang dihindari (alergen)
+      final List<dynamic> ingredientsData = await _supabase
+          .from('avoided_ingredients')
+          .select('ingredients (ingredient_name)')
+          .eq('recommendation_session_id', sessionId);
+
+      final List<String> ingredients = ingredientsData
+          .map((item) {
+            final ingredient = item['ingredients'] as Map<String, dynamic>?;
+            return ingredient != null ? ingredient['ingredient_name'] as String : '';
+          })
+          .where((name) => name.isNotEmpty)
+          .toList();
+
+      return {
+        'session': sessionData,
+        'concerns': concerns,
+        'ingredients': ingredients,
+      };
+    } catch (e) {
+      debugPrint('RecommendationService fetchSessionDetails error: $e');
+      return null;
+    }
+  }
+
+  /// Mengambil daftar produk hasil rekomendasi untuk sesi tertentu
+  Future<List<Map<String, dynamic>>> fetchSessionResults(String sessionId) async {
+    try {
+      final List<dynamic> data = await _supabase
+          .from('recommendation_results')
+          .select('''
+            recommendation_result_id,
+            match_score,
+            rank_position,
+            products (
+              product_id,
+              brand_name,
+              product_name,
+              category,
+              usage_time,
+              spf_value,
+              pa_grade
+            )
+          ''')
+          .eq('recommendation_session_id', sessionId)
+          .order('rank_position', ascending: true);
+
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint('RecommendationService fetchSessionResults error: $e');
+      return [];
+    }
+  }
 }
