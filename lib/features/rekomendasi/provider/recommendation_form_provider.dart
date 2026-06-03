@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
+import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
+import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 
 class RecommendationFormProvider extends ChangeNotifier {
   SkinTypeModel? _selectedSkinType;
@@ -11,12 +13,26 @@ class RecommendationFormProvider extends ChangeNotifier {
   List<IngredientModel> _selectedIngredients = [];
   bool _isConfirmed = false;
 
+  // State Otomatis Lokasi & UV (bagian dari payload formulir)
+  String? _locationName;
+  double? _latitude;
+  double? _longitude;
+  double? _uvIndex;
+  String? _uvRiskLevel;
+
   SkinTypeModel? get selectedSkinType => _selectedSkinType;
   List<SkinConcernModel> get selectedSkinProblems => _selectedSkinProblems;
   String? get selectedUsageTime => _selectedUsageTime;
   String? get selectedAllergyStatus => _selectedAllergyStatus;
   List<IngredientModel> get selectedIngredients => _selectedIngredients;
   bool get isConfirmed => _isConfirmed;
+
+  // Getters Lokasi & UV
+  String? get locationName => _locationName;
+  double? get latitude => _latitude;
+  double? get longitude => _longitude;
+  double? get uvIndex => _uvIndex;
+  String? get uvRiskLevel => _uvRiskLevel;
 
   /// Mengatur pilihan tipe kulit
   void setSelectedSkinType(SkinTypeModel? value) {
@@ -61,6 +77,32 @@ class RecommendationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Menyalin dan memetakan data lokasi dan UV dari HomeLocationProvider ke dalam state formulir
+  void updateLocationAndUv(HomeLocationProvider locationProvider) {
+    final position = locationProvider.currentPosition;
+    final address = locationProvider.readableAddress;
+
+    // Set ke null jika statusnya masih berupa placeholder pencarian awal atau gagal
+    final isSearching =
+        address == 'Mencari lokasi...' || address == 'Gagal memuat lokasi';
+    _locationName = isSearching ? null : address;
+
+    _latitude = position?.latitude;
+    _longitude = position?.longitude;
+    _uvIndex = locationProvider.uvIndex;
+
+    // Memetakan tingkat risiko UV dari enum model ke string enum database
+    _uvRiskLevel = switch (locationProvider.uvRiskLevel) {
+      UVRiskLevel.low => 'low',
+      UVRiskLevel.moderate => 'moderate',
+      UVRiskLevel.high => 'high',
+      UVRiskLevel.veryHigh => 'very_high',
+      UVRiskLevel.extreme => 'extreme',
+    };
+
+    notifyListeners();
+  }
+
   /// Melakukan pembersihan/reset seluruh data pilihan pada formulir ke kondisi semula
   void resetForm() {
     _selectedSkinType = null;
@@ -69,8 +111,32 @@ class RecommendationFormProvider extends ChangeNotifier {
     _selectedAllergyStatus = null;
     _selectedIngredients = [];
     _isConfirmed = false;
+
+    // Bersihkan juga data lokasi & UV
+    _locationName = null;
+    _latitude = null;
+    _longitude = null;
+    _uvIndex = null;
+    _uvRiskLevel = null;
+
     notifyListeners();
   }
+
+  /// Memetakan label waktu penggunaan ke format enum database Supabase
+  String get mappedUsageTime => switch (_selectedUsageTime) {
+    'Pagi Hari' => 'morning_day',
+    'Pagi & Malam Hari' => 'morning_and_night',
+    'Malam Hari' => 'night',
+    _ => 'morning_and_night',
+  };
+
+  /// Memetakan label riwayat alergi ke format enum database Supabase
+  String get mappedAllergyStatus => switch (_selectedAllergyStatus) {
+    'Tidak Ada Riwayat Alergi' => 'none',
+    'Pernah Alergi, tapi Tidak Tahu Bahannya' => 'unknown_ingredient',
+    'Pernah Alergi terhadap Bahan Tertentu' => 'known_ingredient',
+    _ => 'none',
+  };
 
   bool get isFormValid {
     final isAllergyWithIngredients =

@@ -10,13 +10,8 @@ import 'package:recommendation_app/core/widgets/app_snackbar.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
-import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
-import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
-import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
-import 'package:recommendation_app/features/rekomendasi/widgets/single_choice.dart';
-import 'package:recommendation_app/features/rekomendasi/widgets/multiple_choice.dart';
+import 'package:recommendation_app/features/rekomendasi/widgets/recommendation_form.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
-import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 
 class CreateRecommendationScreen extends StatefulWidget {
   const CreateRecommendationScreen({super.key});
@@ -28,18 +23,6 @@ class CreateRecommendationScreen extends StatefulWidget {
 
 class _CreateRecommendationScreenState
     extends State<CreateRecommendationScreen> {
-  final List<String> _usageTimes = [
-    'Pagi Hari',
-    'Pagi & Malam Hari',
-    'Malam Hari',
-  ];
-
-  final List<String> _allergyStatuses = [
-    'Tidak Ada Riwayat Alergi',
-    'Pernah Alergi, tapi Tidak Tahu Bahannya',
-    'Pernah Alergi terhadap Bahan Tertentu',
-  ];
-
   late ScrollController _scrollController;
   bool _showStickyHeader = false;
 
@@ -72,31 +55,6 @@ class _CreateRecommendationScreenState
     }
   }
 
-  /// Memetakan label waktu penggunaan ke format enum database Supabase
-  String _mapUsageTime(String displayTime) => switch (displayTime) {
-    'Pagi Hari' => 'morning_day',
-    'Pagi & Malam Hari' => 'morning_and_night',
-    'Malam Hari' => 'night',
-    _ => 'morning_and_night',
-  };
-
-  /// Memetakan label riwayat alergi ke format enum database Supabase
-  String _mapAllergyStatus(String displayStatus) => switch (displayStatus) {
-    'Tidak Ada Riwayat Alergi' => 'none',
-    'Pernah Alergi, tapi Tidak Tahu Bahannya' => 'unknown_ingredient',
-    'Pernah Alergi terhadap Bahan Tertentu' => 'known_ingredient',
-    _ => 'none',
-  };
-
-  /// Memetakan tingkat risiko UV dari enum model ke string enum database
-  String _mapUvRiskLevel(UVRiskLevel level) => switch (level) {
-        UVRiskLevel.low => 'low',
-        UVRiskLevel.moderate => 'moderate',
-        UVRiskLevel.high => 'high',
-        UVRiskLevel.veryHigh => 'very_high',
-        UVRiskLevel.extreme => 'extreme',
-      };
-
   Future<void> _tapToRecommendation() async {
     final authProvider = context.read<AuthProvider>();
     final userId = authProvider.currentUser?.idUser;
@@ -122,32 +80,25 @@ class _CreateRecommendationScreenState
       return;
     }
 
-    // 1. Ambil data lokasi & indeks UV terintegrasi dari HomeLocationProvider
     final locationProvider = context.read<HomeLocationProvider>();
-    final position = locationProvider.currentPosition;
-    final locationName = locationProvider.readableAddress;
+    formProvider.updateLocationAndUv(locationProvider);
 
-    // Set ke null jika statusnya masih berupa placeholder pencarian awal
-    final isSearching = locationName == 'Mencari lokasi...' || locationName == 'Gagal memuat lokasi';
-    final actualLocationName = isSearching ? null : locationName;
-
-    // 2. Kirim data formulir beserta informasi cuaca/lokasi yang terdeteksi
     final sessionId = await provider.submitRecommendation(
       userId: userId,
       skinTypeId: skinType.skinTypeId,
-      usageTime: _mapUsageTime(usageTime),
-      allergyStatus: _mapAllergyStatus(allergyStatus),
+      usageTime: formProvider.mappedUsageTime,
+      allergyStatus: formProvider.mappedAllergyStatus,
       selectedConcernIds: formProvider.selectedSkinProblems
           .map((p) => p.skinConcernId)
           .toList(),
       avoidedIngredientIds: formProvider.selectedIngredients
           .map((i) => i.ingredientId)
           .toList(),
-      locationName: actualLocationName,
-      latitude: position?.latitude,
-      longitude: position?.longitude,
-      uvIndex: locationProvider.uvIndex,
-      uvRiskLevel: _mapUvRiskLevel(locationProvider.uvRiskLevel),
+      locationName: formProvider.locationName,
+      latitude: formProvider.latitude,
+      longitude: formProvider.longitude,
+      uvIndex: formProvider.uvIndex,
+      uvRiskLevel: formProvider.uvRiskLevel,
     );
 
     if (!mounted) return;
@@ -170,22 +121,16 @@ class _CreateRecommendationScreenState
     final provider = context.watch<RecommendationProvider>();
     final formProvider = context.watch<RecommendationFormProvider>();
 
-    final showAllergenForm =
-        formProvider.selectedAllergyStatus ==
-        'Pernah Alergi terhadap Bahan Tertentu';
-
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
       body: SafeArea(
         child: Stack(
           children: [
-            // Konten Formulir Utama
             Positioned.fill(
               child: ListView(
                 controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  // AppNavigation utama yang ikut bergeser ke atas saat scroll
                   AppNavigation(
                     rightAction: NavigationCircleButton(
                       size: 48,
@@ -198,77 +143,11 @@ class _CreateRecommendationScreenState
                     ),
                   ),
                   AppSpacing.v16,
-
-                  SingleChoice<SkinTypeModel>(
-                    indexNumber: '01',
-                    question: 'Jenis Kulit Anda',
-                    options: provider.skinTypes,
-                    selectedOption: formProvider.selectedSkinType,
-                    optionLabelBuilder: (type) => type.displayName,
-                    isLoading: provider.isLoading && provider.skinTypes.isEmpty,
-                    onOptionSelected: (type) {
-                      formProvider.setSelectedSkinType(type);
-                    },
-                  ),
-                  AppSpacing.v16,
-
-                  MultipleChoice<SkinConcernModel>(
-                    indexNumber: '02',
-                    question: 'Fokus Masalah Kulit (Pilihan Ganda)',
-                    options: provider.skinConcerns,
-                    selectedOptions: formProvider.selectedSkinProblems,
-                    optionLabelBuilder: (problem) => problem.displayName,
-                    isLoading: provider.isLoading && provider.skinConcerns.isEmpty,
-                    onOptionsChanged: (problems) {
-                      formProvider.setSelectedSkinProblems(problems);
-                    },
-                  ),
-                  AppSpacing.v16,
-
-                  SingleChoice<String>(
-                    indexNumber: '03',
-                    question: 'Waktu Penggunaan Skincare',
-                    options: _usageTimes,
-                    selectedOption: formProvider.selectedUsageTime,
-                    optionLabelBuilder: (time) => time,
-                    isLoading: provider.isLoading && provider.skinTypes.isEmpty,
-                    onOptionSelected: (time) {
-                      formProvider.setSelectedUsageTime(time);
-                    },
-                  ),
-                  AppSpacing.v16,
-
-                  SingleChoice<String>(
-                    indexNumber: '04',
-                    question: 'Riwayat Alergi Produk',
-                    options: _allergyStatuses,
-                    selectedOption: formProvider.selectedAllergyStatus,
-                    optionLabelBuilder: (status) => status,
-                    isLoading: provider.isLoading && provider.skinTypes.isEmpty,
-                    onOptionSelected: (status) {
-                      formProvider.setSelectedAllergyStatus(status);
-                    },
-                  ),
-
-                  if (showAllergenForm) ...[
-                    AppSpacing.v24,
-                    MultipleChoice<IngredientModel>(
-                      indexNumber: '05',
-                      question: 'Kandungan yang Dihindari (Alergen)',
-                      options: provider.ingredients,
-                      selectedOptions: formProvider.selectedIngredients,
-                      optionLabelBuilder: (ingredient) => ingredient.ingredientName,
-                      isLoading: provider.isLoading && provider.ingredients.isEmpty,
-                      onOptionsChanged: (ingredients) {
-                        formProvider.setSelectedIngredients(ingredients);
-                      },
-                    ),
-                  ],
+                  const RecommendationForm(),
                 ],
               ),
             ),
 
-            // Sticky Header Glassmorphism (Turun dari atas saat di-scroll)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
@@ -279,9 +158,14 @@ class _CreateRecommendationScreenState
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: context.colors.lightBackground.withValues(alpha: 0.85),
+                      color: context.colors.lightBackground.withValues(
+                        alpha: 0.85,
+                      ),
                       border: Border(
                         bottom: BorderSide(
                           color: context.colors.outline.withValues(alpha: 0.08),
