@@ -51,7 +51,7 @@ class AppNavigation extends StatelessWidget implements PreferredSizeWidget {
       child: Row(
         children: [
           if (showBackButton)
-            _NavigationCircleButton(
+            NavigationCircleButton(
               size: buttonSize,
               seamless: seamless,
               onTap: onBackTap ?? () => _handleBackPress(context),
@@ -67,7 +67,7 @@ class AppNavigation extends StatelessWidget implements PreferredSizeWidget {
           Expanded(child: _NavigationTitle(title: derivedTitle)),
           AppSpacing.h12,
           rightAction ??
-              _NavigationCircleButton(size: buttonSize, seamless: seamless),
+              NavigationCircleButton(size: buttonSize, seamless: seamless),
         ],
       ),
     );
@@ -185,13 +185,14 @@ class AppNavigation extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => Size.fromHeight(height);
 }
 
-class _NavigationCircleButton extends StatelessWidget {
+class NavigationCircleButton extends StatelessWidget {
   final Widget? child;
   final VoidCallback? onTap;
   final double size;
   final bool seamless;
 
-  const _NavigationCircleButton({
+  const NavigationCircleButton({
+    super.key,
     this.child,
     this.onTap,
     required this.size,

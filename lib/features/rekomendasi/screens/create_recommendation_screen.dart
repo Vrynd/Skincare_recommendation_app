@@ -5,8 +5,10 @@ import 'package:recommendation_app/core/widgets/app_dock_sheet.dart';
 import 'package:recommendation_app/core/widgets/app_navigation.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
+import 'package:recommendation_app/core/widgets/app_snackbar.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
@@ -23,13 +25,6 @@ class CreateRecommendationScreen extends StatefulWidget {
 
 class _CreateRecommendationScreenState
     extends State<CreateRecommendationScreen> {
-  bool _isConfirmed = false;
-  SkinTypeModel? _selectedSkinType;
-  List<SkinConcernModel> _selectedSkinProblems = [];
-  String? _selectedUsageTime;
-  String? _selectedAllergyStatus;
-  List<IngredientModel> _selectedIngredients = [];
-
   final List<String> _usageTimes = [
     'Pagi Hari',
     'Pagi & Malam Hari',
@@ -52,38 +47,82 @@ class _CreateRecommendationScreenState
   }
 
   /// Memetakan label waktu penggunaan ke format enum database Supabase
-  String _mapUsageTime(String displayTime) {
-    switch (displayTime) {
-      case 'Pagi Hari':
-        return 'morning_day';
-      case 'Pagi & Malam Hari':
-        return 'morning_and_night';
-      case 'Malam Hari':
-        return 'night';
-      default:
-        return 'morning_and_night';
-    }
-  }
+  String _mapUsageTime(String displayTime) => switch (displayTime) {
+    'Pagi Hari' => 'morning_day',
+    'Pagi & Malam Hari' => 'morning_and_night',
+    'Malam Hari' => 'night',
+    _ => 'morning_and_night',
+  };
 
   /// Memetakan label riwayat alergi ke format enum database Supabase
-  String _mapAllergyStatus(String displayStatus) {
-    switch (displayStatus) {
-      case 'Tidak Ada Riwayat Alergi':
-        return 'none';
-      case 'Pernah Alergi, tapi Tidak Tahu Bahannya':
-        return 'unknown_ingredient';
-      case 'Pernah Alergi terhadap Bahan Tertentu':
-        return 'known_ingredient';
-      default:
-        return 'none';
+  String _mapAllergyStatus(String displayStatus) => switch (displayStatus) {
+    'Tidak Ada Riwayat Alergi' => 'none',
+    'Pernah Alergi, tapi Tidak Tahu Bahannya' => 'unknown_ingredient',
+    'Pernah Alergi terhadap Bahan Tertentu' => 'known_ingredient',
+    _ => 'none',
+  };
+
+  Future<void> _tapToRecommendation() async {
+    final authProvider = context.read<AuthProvider>();
+    final userId = authProvider.currentUser?.idUser;
+    if (userId == null) {
+      AppSnackBar.showError(
+        context,
+        'Sesi pengguna tidak ditemukan. Silakan login kembali.',
+      );
+      return;
+    }
+
+    final provider = context.read<RecommendationProvider>();
+    final formProvider = context.read<RecommendationFormProvider>();
+
+    final skinType = formProvider.selectedSkinType;
+    final usageTime = formProvider.selectedUsageTime;
+    final allergyStatus = formProvider.selectedAllergyStatus;
+    if (skinType == null || usageTime == null || allergyStatus == null) {
+      AppSnackBar.showError(
+        context,
+        'Silakan lengkapi semua pilihan formulir terlebih dahulu.',
+      );
+      return;
+    }
+
+    final sessionId = await provider.submitRecommendation(
+      userId: userId,
+      skinTypeId: skinType.skinTypeId,
+      usageTime: _mapUsageTime(usageTime),
+      allergyStatus: _mapAllergyStatus(allergyStatus),
+      selectedConcernIds: formProvider.selectedSkinProblems
+          .map((p) => p.skinConcernId)
+          .toList(),
+      avoidedIngredientIds: formProvider.selectedIngredients
+          .map((i) => i.ingredientId)
+          .toList(),
+    );
+
+    if (!mounted) return;
+    if (sessionId != null) {
+      formProvider.resetForm();
+      AppSnackBar.showSuccess(
+        context,
+        'Rekomendasi berhasil dibuat berdasarkan analisis kulit Anda.',
+      );
+    } else {
+      AppSnackBar.showError(
+        context,
+        provider.errorMessage ?? 'Gagal menyimpan rekomendasi.',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RecommendationProvider>();
+    final formProvider = context.watch<RecommendationFormProvider>();
+
     final showAllergenForm =
-        _selectedAllergyStatus == 'Pernah Alergi terhadap Bahan Tertentu';
+        formProvider.selectedAllergyStatus ==
+        'Pernah Alergi terhadap Bahan Tertentu';
 
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
@@ -91,129 +130,81 @@ class _CreateRecommendationScreenState
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
-            const AppNavigation(),
-            AppSpacing.v16,
-
-            // Banner Error jika pemuatan opsi gagal
-            if (provider.errorMessage != null && provider.skinTypes.isEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: context.colors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: context.colors.error.withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: context.colors.error),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        provider.errorMessage!,
-                        style: context.text.bodyMedium?.copyWith(
-                          color: context.colors.error,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      color: context.colors.error,
-                      onPressed: () => provider.loadFormOptions(),
-                    ),
-                  ],
+            AppNavigation(
+              rightAction: NavigationCircleButton(
+                size: 48,
+                onTap: () => formProvider.resetForm(),
+                child: Icon(
+                  Icons.refresh_rounded,
+                  color: context.colors.onSurface,
+                  size: 22,
                 ),
               ),
-              AppSpacing.v16,
-            ],
+            ),
+            AppSpacing.v16,
 
-            // 01. Pilihan Jenis Kulit (Dinamis dari Supabase)
             SingleChoice<SkinTypeModel>(
               indexNumber: '01',
               question: 'Jenis Kulit Anda',
               options: provider.skinTypes,
-              selectedOption: _selectedSkinType,
+              selectedOption: formProvider.selectedSkinType,
               optionLabelBuilder: (type) => type.displayName,
               isLoading: provider.isLoading && provider.skinTypes.isEmpty,
               onOptionSelected: (type) {
-                setState(() {
-                  _selectedSkinType = type;
-                  _isConfirmed = false;
-                });
+                formProvider.setSelectedSkinType(type);
               },
             ),
-            AppSpacing.v24,
+            AppSpacing.v16,
 
-            // 02. Pilihan Masalah Kulit (Dinamis dari Supabase)
             MultipleChoice<SkinConcernModel>(
               indexNumber: '02',
               question: 'Fokus Masalah Kulit (Pilihan Ganda)',
               options: provider.skinConcerns,
-              selectedOptions: _selectedSkinProblems,
+              selectedOptions: formProvider.selectedSkinProblems,
               optionLabelBuilder: (problem) => problem.displayName,
               isLoading: provider.isLoading && provider.skinConcerns.isEmpty,
               onOptionsChanged: (problems) {
-                setState(() {
-                  _selectedSkinProblems = problems;
-                  _isConfirmed = false;
-                });
+                formProvider.setSelectedSkinProblems(problems);
               },
             ),
-            AppSpacing.v24,
+            AppSpacing.v16,
 
-             // 03. Waktu Penggunaan Skincare (Statis Enum)
             SingleChoice<String>(
               indexNumber: '03',
               question: 'Waktu Penggunaan Skincare',
               options: _usageTimes,
-              selectedOption: _selectedUsageTime,
+              selectedOption: formProvider.selectedUsageTime,
               optionLabelBuilder: (time) => time,
               isLoading: provider.isLoading && provider.skinTypes.isEmpty,
               onOptionSelected: (time) {
-                setState(() {
-                  _selectedUsageTime = time;
-                  _isConfirmed = false;
-                });
+                formProvider.setSelectedUsageTime(time);
               },
             ),
-            AppSpacing.v24,
+            AppSpacing.v16,
 
-            // 04. Riwayat Alergi Produk (Statis Enum)
             SingleChoice<String>(
               indexNumber: '04',
               question: 'Riwayat Alergi Produk',
               options: _allergyStatuses,
-              selectedOption: _selectedAllergyStatus,
+              selectedOption: formProvider.selectedAllergyStatus,
               optionLabelBuilder: (status) => status,
               isLoading: provider.isLoading && provider.skinTypes.isEmpty,
               onOptionSelected: (status) {
-                setState(() {
-                  _selectedAllergyStatus = status;
-                  if (status != 'Pernah Alergi terhadap Bahan Tertentu') {
-                    _selectedIngredients = [];
-                  }
-                  _isConfirmed = false;
-                });
+                formProvider.setSelectedAllergyStatus(status);
               },
             ),
 
-            // 05. Kandungan yang Dihindari / Alergen (Dinamis dari Supabase)
             if (showAllergenForm) ...[
               AppSpacing.v24,
               MultipleChoice<IngredientModel>(
                 indexNumber: '05',
                 question: 'Kandungan yang Dihindari (Alergen)',
                 options: provider.ingredients,
-                selectedOptions: _selectedIngredients,
+                selectedOptions: formProvider.selectedIngredients,
                 optionLabelBuilder: (ingredient) => ingredient.ingredientName,
                 isLoading: provider.isLoading && provider.ingredients.isEmpty,
                 onOptionsChanged: (ingredients) {
-                  setState(() {
-                    _selectedIngredients = ingredients;
-                    _isConfirmed = false;
-                  });
+                  formProvider.setSelectedIngredients(ingredients);
                 },
               ),
             ],
@@ -224,108 +215,20 @@ class _CreateRecommendationScreenState
         title: 'Yakin data sudah benar?',
         description: 'Pastikan semua inputan formulir terisi dengan valid.',
         buttonTitle: 'Buat Rekomendasi',
-        switchValue: _isConfirmed,
+        switchValue: formProvider.isConfirmed,
         isButtonLoading: provider.isLoading,
         onSwitchChanged: (value) {
-          final isAllergyWithIngredients =
-              _selectedAllergyStatus == 'Pernah Alergi terhadap Bahan Tertentu';
-          final hasInvalidAllergy =
-              isAllergyWithIngredients && _selectedIngredients.isEmpty;
-
-          if (_selectedSkinType == null ||
-              _selectedSkinProblems.isEmpty ||
-              _selectedUsageTime == null ||
-              _selectedAllergyStatus == null ||
-              hasInvalidAllergy) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Silakan lengkapi semua pilihan formulir terlebih dahulu.',
-                  style: context.text.bodyMedium?.copyWith(
-                    color: context.colors.onError,
-                  ),
-                ),
-                backgroundColor: context.colors.error,
-                behavior: SnackBarBehavior.floating,
-              ),
+          if (!formProvider.isFormValid) {
+            AppSnackBar.showError(
+              context,
+              'Silakan lengkapi semua pilihan formulir terlebih dahulu.',
             );
             return;
           }
-          setState(() {
-            _isConfirmed = value;
-          });
+          formProvider.setIsConfirmed(value);
         },
-        onButtonTap: () async {
-          final authProvider = context.read<AuthProvider>();
-          final userId = authProvider.currentUser?.idUser;
-          if (userId == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Sesi pengguna tidak ditemukan. Silakan login kembali.',
-                  style: context.text.bodyMedium?.copyWith(
-                    color: context.colors.onError,
-                  ),
-                ),
-                backgroundColor: context.colors.error,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            return;
-          }
-
-          // Simpan ScaffoldMessenger dan tema sebelum panggilan async untuk menghindari warning build context across async gaps
-          final scaffoldMessenger = ScaffoldMessenger.of(context);
-          final themeText = context.text;
-          final themeColors = context.colors;
-
-          // Kirim data formulir rekomendasi ke Supabase
-          final sessionId = await provider.submitRecommendation(
-            userId: userId,
-            skinTypeId: _selectedSkinType!.skinTypeId,
-            usageTime: _mapUsageTime(_selectedUsageTime!),
-            allergyStatus: _mapAllergyStatus(_selectedAllergyStatus!),
-            selectedConcernIds:
-                _selectedSkinProblems.map((p) => p.skinConcernId).toList(),
-            avoidedIngredientIds:
-                _selectedIngredients.map((i) => i.ingredientId).toList(),
-          );
-
-          if (!context.mounted) return;
-
-          if (sessionId != null) {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Rekomendasi berhasil dibuat berdasarkan analisis kulit Anda.',
-                  style: themeText.bodyMedium?.copyWith(
-                    color: themeColors.onPrimary,
-                  ),
-                ),
-                backgroundColor: themeColors.primary,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-
-            
-            // Navigator.push(context, MaterialPageRoute(...));
-          } else {
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  provider.errorMessage ?? 'Gagal menyimpan rekomendasi.',
-                  style: themeText.bodyMedium?.copyWith(
-                    color: themeColors.onError,
-                  ),
-                ),
-                backgroundColor: themeColors.error,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-        },
+        onButtonTap: _tapToRecommendation,
       ),
     );
   }
 }
-
