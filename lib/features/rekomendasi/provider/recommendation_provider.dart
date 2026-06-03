@@ -27,6 +27,7 @@ class RecommendationProvider extends ChangeNotifier {
 
   // State Umum Pemuatan & Error
   bool _isLoading = false;
+  bool _isSubmitting = false;
   String? _errorMessage;
 
   // Getters Opsi Formulir
@@ -38,6 +39,7 @@ class RecommendationProvider extends ChangeNotifier {
   Map<String, int> get categoryCounts => _categoryCounts;
   List<RecommendationModel> get recommendations => _recommendations;
   bool get isLoading => _isLoading;
+  bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
   /// Memuat semua data master opsi formulir
@@ -73,8 +75,13 @@ class RecommendationProvider extends ChangeNotifier {
     required String allergyStatus,
     required List<String> selectedConcernIds,
     required List<String> avoidedIngredientIds,
+    String? locationName,
+    double? latitude,
+    double? longitude,
+    double? uvIndex,
+    String? uvRiskLevel,
   }) async {
-    _isLoading = true;
+    _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
 
@@ -86,6 +93,11 @@ class RecommendationProvider extends ChangeNotifier {
         allergyStatus: allergyStatus,
         selectedConcernIds: selectedConcernIds,
         avoidedIngredientIds: avoidedIngredientIds,
+        locationName: locationName,
+        latitude: latitude,
+        longitude: longitude,
+        uvIndex: uvIndex,
+        uvRiskLevel: uvRiskLevel,
       );
       return sessionId;
     } catch (e) {
@@ -93,7 +105,7 @@ class RecommendationProvider extends ChangeNotifier {
       debugPrint('RecommendationProvider submitRecommendation error: $e');
       return null;
     } finally {
-      _isLoading = false;
+      _isSubmitting = false;
       notifyListeners();
     }
   }

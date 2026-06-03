@@ -62,6 +62,11 @@ class RecommendationService {
     required String allergyStatus,
     required List<String> selectedConcernIds,
     required List<String> avoidedIngredientIds,
+    String? locationName,
+    double? latitude,
+    double? longitude,
+    double? uvIndex,
+    String? uvRiskLevel,
   }) async {
     try {
       // 1. Simpan data utama sesi rekomendasi
@@ -72,6 +77,11 @@ class RecommendationService {
             'skin_type_id': skinTypeId,
             'usage_time': usageTime,
             'allergy_status': allergyStatus,
+            'location_name': locationName,
+            'latitude': latitude,
+            'longitude': longitude,
+            'uv_index': uvIndex,
+            'uv_risk_level': uvRiskLevel,
           })
           .select('recommendation_session_id')
           .single();
@@ -124,7 +134,8 @@ class RecommendationService {
               category
             ),
             recommendation_sessions!inner (
-              id_user
+              id_user,
+              recommendation_code
             )
           ''')
           .eq('recommendation_sessions.id_user', userId)
