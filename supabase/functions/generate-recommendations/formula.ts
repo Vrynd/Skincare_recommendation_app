@@ -101,9 +101,6 @@ export async function saveRecommendationResults(
   const resultsToInsert = rankedResults.map(res => ({
     recommendation_session_id: recommendationId,
     product_id: res.product.product_id,
-    skin_type_score: res.score_s1,
-    skin_concern_score: res.score_s2,
-    uv_score: res.score_s3,
     match_score: res.total_score,
     rank_position: res.rank_position
   }));

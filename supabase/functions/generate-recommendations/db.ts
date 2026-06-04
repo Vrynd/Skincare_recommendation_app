@@ -119,7 +119,7 @@ export async function fetchAllActiveProducts(adminClient: any) {
       pa_grade,
       is_active,
       product_skin_types (skin_type_id),
-      product_skin_concerns (skin_concern_id, concern_role),
+      product_skin_concerns (skin_concern_id),
       product_ingredients (ingredient_id)
     `)
     .eq('is_active', true);

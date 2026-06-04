@@ -211,7 +211,12 @@ Deno.serve(async (req) => {
       uv_index: body.uv_index,
       uv_category: body.uv_category,
       location_name: body.location_name || null,
-      results: ranked_results,
+      results: ranked_results.map(res => ({
+        product: res.product,
+        match_score: res.total_score,
+        rank: res.rank,
+        rank_position: res.rank_position
+      })),
       warnings: warnings,
       avoided_ingredients_info: avoided_info
     }), {

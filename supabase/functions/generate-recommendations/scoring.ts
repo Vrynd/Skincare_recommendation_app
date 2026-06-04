@@ -48,28 +48,12 @@ export function calculateS2(product: any, selectedConcernIds: string[]): number 
   const jumlahMasalah = selectedConcernIds.length;
 
   for (const concernId of selectedConcernIds) {
-    // Cari concern_role produk untuk masalah ini
-    const productConcern = product.product_skin_concerns?.find(
+    // Cek apakah produk mengatasi masalah ini
+    const hasConcern = product.product_skin_concerns?.some(
       (c: any) => c.skin_concern_id === concernId
     );
 
-    let skorMasalah = 0;
-
-    if (!productConcern) {
-      skorMasalah = 0;
-    } else {
-      // Jika kolom concern_role kosong/null/undefined, default ke 'utama'
-      const role = productConcern.concern_role ? productConcern.concern_role.toLowerCase() : 'utama';
-
-      if (role === 'utama') {
-        skorMasalah = 100;
-      } else if (role === 'pendukung') {
-        skorMasalah = 60;
-      } else {
-        skorMasalah = 0;
-      }
-    }
-
+    const skorMasalah = hasConcern ? 100 : 0;
     totalSkor += skorMasalah;
   }
 
