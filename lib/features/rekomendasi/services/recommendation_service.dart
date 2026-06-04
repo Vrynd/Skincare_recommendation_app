@@ -69,52 +69,30 @@ class RecommendationService {
     String? uvRiskLevel,
   }) async {
     try {
-      // 1. Simpan data utama sesi rekomendasi
-      final sessionResult = await _supabase
-          .from('recommendation_sessions')
-          .insert({
-            'id_user': userId,
-            'skin_type_id': skinTypeId,
-            'usage_time': usageTime,
-            'allergy_status': allergyStatus,
-            'location_name': locationName,
-            'latitude': latitude,
-            'longitude': longitude,
-            'uv_index': uvIndex,
-            'uv_risk_level': uvRiskLevel,
-          })
-          .select('recommendation_session_id')
-          .single();
+      final response = await _supabase.functions.invoke(
+        'generate-recommendations',
+        body: {
+          'skin_type_id': skinTypeId,
+          'skin_concern_ids': selectedConcernIds,
+          'usage_time': usageTime,
+          'allergy_status': allergyStatus,
+          'avoided_ingredient_ids': avoidedIngredientIds,
+          'location_name': locationName,
+          'latitude': latitude,
+          'longitude': longitude,
+          'uv_index': uvIndex,
+          'uv_risk_level': uvRiskLevel,
+        },
+      );
 
-      final String sessionId = sessionResult['recommendation_session_id'] as String;
-
-      // 2. Simpan daftar masalah kulit terpilih
-      if (selectedConcernIds.isNotEmpty) {
-        final List<Map<String, dynamic>> concernsData = selectedConcernIds
-            .map((concernId) => {
-                  'recommendation_session_id': sessionId,
-                  'skin_concern_id': concernId,
-                })
-            .toList();
-
-        await _supabase.from('recommendation_concerns').insert(concernsData);
+      if (response.status != 200) {
+        throw Exception(response.data['error'] ?? 'Gagal membuat rekomendasi');
       }
 
-      // 3. Simpan daftar bahan kosmetik yang dihindari
-      if (avoidedIngredientIds.isNotEmpty) {
-        final List<Map<String, dynamic>> avoidedIngredientsData = avoidedIngredientIds
-            .map((ingredientId) => {
-                  'recommendation_session_id': sessionId,
-                  'ingredient_id': ingredientId,
-                })
-            .toList();
-
-        await _supabase.from('avoided_ingredients').insert(avoidedIngredientsData);
-      }
-
+      final String sessionId = response.data['session_id'] as String;
       return sessionId;
     } catch (e) {
-      debugPrint('RecommendationService submitRecommendationSession error: $e');
+      debugPrint('RecommendationService submitRecommendations error: $e');
       rethrow;
     }
   }
