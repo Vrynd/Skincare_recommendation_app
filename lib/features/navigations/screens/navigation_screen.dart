@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:recommendation_app/features/account/screens/account_screen.dart';
 import 'package:recommendation_app/features/home/screens/home_screen.dart';
 import 'package:recommendation_app/features/navigations/provider/navigation_provider.dart';
 import 'package:recommendation_app/features/navigations/widgets/floating_dock.dart';
@@ -15,7 +16,7 @@ class NavigationScreen extends StatelessWidget {
     final List<Widget> screens = [
       const HomeScreen(),
       const Center(child: Text('Analytics Screen')),
-      const Center(child: Text('History Screen')),
+      const AccountScreen(),
     ];
 
     return Scaffold(
