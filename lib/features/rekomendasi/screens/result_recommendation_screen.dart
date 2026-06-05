@@ -128,7 +128,9 @@ class _ResultRecommendationScreenState
     );
     final concernDisplay = concerns.isEmpty
         ? '-'
-        : concerns.map(SkinConcernModel.getDisplay).join(', ');
+        : concerns.length <= 2
+            ? concerns.map(SkinConcernModel.getDisplay).join(', ')
+            : '${concerns.take(2).map(SkinConcernModel.getDisplay).join(', ')}, ...';
     final uvStr = uvDisplay(
       session['uv_index'],
       session['uv_risk_level'] as String?,

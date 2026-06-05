@@ -26,10 +26,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'Cleanser';
+  final ScrollController _scrollController = ScrollController();
+  int _displayLimit = 2;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final auth = context.read<AuthProvider>();
@@ -46,6 +49,40 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    _checkAndLoadMore();
+  }
+
+  void _checkAndLoadMore() {
+    if (!mounted) return;
+    final recommendation = context.read<RecommendationProvider>();
+    final filteredCount = recommendation.recommendations.where((item) {
+      final itemCat = item.category.toLowerCase();
+      final targetCat = _selectedCategory.toLowerCase();
+      if (targetCat == 'moisture') {
+        return itemCat == 'moisturizer' || itemCat == 'moisture';
+      }
+      return itemCat == targetCat;
+    }).length;
+
+    if (_displayLimit < filteredCount) {
+      if (_scrollController.hasClients) {
+        final pos = _scrollController.position;
+        if (pos.maxScrollExtent == 0 || pos.pixels >= pos.maxScrollExtent - 200) {
+          setState(() {
+            _displayLimit += 2;
+          });
+        }
+      }
+    }
   }
 
   String _getGreeting() {
@@ -85,17 +122,30 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final displayedRecs = filteredRecs.take(_displayLimit).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: filteredRecs
-          .map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: HomeRecommendation(recommendation: item),
+      children: [
+        ...displayedRecs.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: HomeRecommendation(recommendation: item),
+          ),
+        ),
+        if (_displayLimit < filteredRecs.length)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
-          )
-          .toList(),
+          ),
+      ],
     );
   }
 
@@ -108,11 +158,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final recommendation = context.watch<RecommendationProvider>();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndLoadMore();
+    });
+
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
       body: SafeArea(
         bottom: false,
         child: ListView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(top: 16, bottom: 48),
           children: [
             Padding(
@@ -161,32 +217,46 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: 'Cleanser',
                     count: recommendation.categoryCounts['Cleanser'] ?? 0,
                     isSelected: _selectedCategory == 'Cleanser',
-                    onTap: () => setState(() => _selectedCategory = 'Cleanser'),
+                    onTap: () => setState(() {
+                      _selectedCategory = 'Cleanser';
+                      _displayLimit = 2;
+                    }),
                   ),
                   HomeCategory(
                     title: 'Toner',
                     count: recommendation.categoryCounts['Toner'] ?? 0,
                     isSelected: _selectedCategory == 'Toner',
-                    onTap: () => setState(() => _selectedCategory = 'Toner'),
+                    onTap: () => setState(() {
+                      _selectedCategory = 'Toner';
+                      _displayLimit = 2;
+                    }),
                   ),
                   HomeCategory(
                     title: 'Serum',
                     count: recommendation.categoryCounts['Serum'] ?? 0,
                     isSelected: _selectedCategory == 'Serum',
-                    onTap: () => setState(() => _selectedCategory = 'Serum'),
+                    onTap: () => setState(() {
+                      _selectedCategory = 'Serum';
+                      _displayLimit = 2;
+                    }),
                   ),
                   HomeCategory(
                     title: 'Moisture',
                     count: recommendation.categoryCounts['Moisture'] ?? 0,
                     isSelected: _selectedCategory == 'Moisture',
-                    onTap: () => setState(() => _selectedCategory = 'Moisture'),
+                    onTap: () => setState(() {
+                      _selectedCategory = 'Moisture';
+                      _displayLimit = 2;
+                    }),
                   ),
                   HomeCategory(
                     title: 'Sunscreen',
                     count: recommendation.categoryCounts['Sunscreen'] ?? 0,
                     isSelected: _selectedCategory == 'Sunscreen',
-                    onTap: () =>
-                        setState(() => _selectedCategory = 'Sunscreen'),
+                    onTap: () => setState(() {
+                      _selectedCategory = 'Sunscreen';
+                      _displayLimit = 2;
+                    }),
                   ),
                 ],
               ),
