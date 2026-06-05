@@ -33,8 +33,10 @@ class SkinConcernModel {
   }
 
   /// Mendapatkan nama masalah kulit ramah pengguna dalam Bahasa Indonesia
-  String get displayName {
-    switch (skinConcernName.toLowerCase()) {
+  String get displayName => getDisplay(skinConcernName);
+
+  static String getDisplay(String? name) {
+    switch ((name ?? '').toLowerCase()) {
       case 'acne':
         return 'Masalah Jerawat';
       case 'blackhead':
@@ -52,7 +54,7 @@ class SkinConcernModel {
       case 'uneven_tone':
         return 'Warna Kulit Tidak Merata';
       default:
-        return skinConcernName;
+        return name ?? '-';
     }
   }
 }

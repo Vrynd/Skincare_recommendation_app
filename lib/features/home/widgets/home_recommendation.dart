@@ -16,6 +16,7 @@ class HomeRecommendation extends StatelessWidget {
     required this.recommendation,
   });
 
+  // Hash deterministik — sama dengan ProductRecommendationCard agar konsisten
   Color _getBrandColor(String brandName) {
     const accents = [
       AppColors.accentPurple,
@@ -30,8 +31,11 @@ class HomeRecommendation extends StatelessWidget {
       AppColors.accentSage,
       AppColors.accentCyan,
     ];
-    final index = brandName.hashCode.abs() % accents.length;
-    return accents[index];
+    int hash = 5381;
+    for (final c in brandName.toLowerCase().codeUnits) {
+      hash = ((hash << 5) + hash + c) & 0x7FFFFFFF;
+    }
+    return accents[hash % accents.length];
   }
 
   String _formatDate(DateTime dt) {

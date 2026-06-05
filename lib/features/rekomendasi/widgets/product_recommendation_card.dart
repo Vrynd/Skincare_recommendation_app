@@ -26,12 +26,15 @@ class ProductRecommendationCard extends StatefulWidget {
   });
 
   @override
-  State<ProductRecommendationCard> createState() => _ProductRecommendationCardState();
+  State<ProductRecommendationCard> createState() =>
+      _ProductRecommendationCardState();
 }
 
 class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
   bool _isExpanded = false;
 
+  // Warna accent dinamis berdasarkan nama brand — hash deterministik (djb2-style)
+  // agar distribusi warna merata dan tidak bergantung hashCode internal Dart
   Color _getBrandColor(String brand) {
     const accents = [
       AppColors.accentPurple,
@@ -46,68 +49,57 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
       AppColors.accentSage,
       AppColors.accentCyan,
     ];
-    final index = brand.hashCode.abs() % accents.length;
-    return accents[index];
+    int hash = 5381;
+    for (final c in brand.toLowerCase().codeUnits) {
+      hash = ((hash << 5) + hash + c) & 0x7FFFFFFF;
+    }
+    return accents[hash % accents.length];
+  }
+
+  // Icon yang menggambarkan kategori produk
+  dynamic _getCategoryIcon(String cat) {
+    return switch (cat.toLowerCase()) {
+      'cleanser' => HugeIcons.strokeRoundedClean,
+      'toner' => HugeIcons.strokeRoundedDroplet,
+      'serum' => HugeIcons.strokeRoundedDroplet,
+      'moisturizer' || 'moisture' => HugeIcons.strokeRoundedClean,
+      'sunscreen' => HugeIcons.strokeRoundedSun02,
+      _ => HugeIcons.strokeRoundedClean,
+    };
   }
 
   String _formatUsageTime(String time) {
-    switch (time.toLowerCase()) {
-      case 'morning_day':
-        return 'Pagi / Siang';
-      case 'morning_and_night':
-        return 'Pagi & Malam';
-      case 'night':
-        return 'Malam Hari';
-      default:
-        return time.replaceAll('_', ' ').split(' ').map((word) {
-          if (word.isEmpty) return '';
-          return word[0].toUpperCase() + word.substring(1).toLowerCase();
-        }).join(' ');
-    }
-  }
-
-  dynamic _getCategoryIcon(String cat) {
-    switch (cat.toLowerCase()) {
-      case 'cleanser':
-        return HugeIcons.strokeRoundedClean;
-      case 'toner':
-        return HugeIcons.strokeRoundedDroplet;
-      case 'serum':
-        return HugeIcons.strokeRoundedDroplet;
-      case 'moisturizer':
-      case 'moisture':
-        return HugeIcons.strokeRoundedClean;
-      case 'sunscreen':
-        return HugeIcons.strokeRoundedSun02;
-      default:
-        return HugeIcons.strokeRoundedClean;
-    }
+    return switch (time.toLowerCase()) {
+      'morning_day' => 'Pagi / Siang',
+      'morning_and_night' => 'Pagi & Malam',
+      'night' => 'Malam Hari',
+      _ => time.replaceAll('_', ' ').split(' ').map((w) {
+          if (w.isEmpty) return '';
+          return w[0].toUpperCase() + w.substring(1).toLowerCase();
+        }).join(' '),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     final brandColor = _getBrandColor(widget.brandName);
-    final friendlyUsageTime = _formatUsageTime(widget.usageTime);
     final categoryIcon = _getCategoryIcon(widget.category);
+    final friendlyUsageTime = _formatUsageTime(widget.usageTime);
 
     return AppContainer(
       padding: EdgeInsets.zero,
       borderRadius: AppRadius.br24,
-      showShadow: false, // Hilangkan shadow
+      showShadow: false,
       child: InkWell(
-        onTap: () {
-          setState(() {
-            _isExpanded = !_isExpanded;
-          });
-        },
+        onTap: () => setState(() => _isExpanded = !_isExpanded),
         borderRadius: AppRadius.br24,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Baris 1: Body ──────────────────────────────────────────
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Body: brand, nama produk, ilustrasi kategori ─────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
@@ -136,35 +128,41 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                     ),
                   ),
                   AppSpacing.h16,
-                  AppContainer.flat(
+                  // Ilustrasi kategori — AppContainer generic agar opacity terkontrol
+                  AppContainer(
                     width: 48,
                     height: 48,
-                    color: context.colors.primary.withValues(alpha: 0.1),
+                    color: brandColor,
+                    opacity: 0.12,
+                    showBorder: false,
+                    showShadow: false,
                     borderRadius: BorderRadius.circular(16),
                     padding: EdgeInsets.zero,
-                    child: Center(
-                      child: HugeIcon(
-                        icon: categoryIcon,
-                        color: context.colors.primary,
-                        size: 24,
-                      ),
+                    alignment: Alignment.center,
+                    child: HugeIcon(
+                      icon: categoryIcon,
+                      color: brandColor,
+                      size: 24,
                     ),
                   ),
                 ],
               ),
+            ),
 
-              AppSpacing.v12,
-              // ── Pembatas putus-putus ───────────────────────────────────
-              const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 1),
-              AppSpacing.v12,
+            // Divider edge-to-edge: diletakkan di luar Padding, bukan di dalamnya
+            const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 1),
 
-              // ── Baris 2: Footer ────────────────────────────────────────
-              Row(
+            // ── Footer: kategori (warna brand) + tingkat kecocokan ────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Badge Kategori
-                  AppContainer.flat(
+                  // Badge kategori — netral
+                  AppContainer(
                     width: null,
+                    showBorder: false,
+                    showShadow: false,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
@@ -179,14 +177,18 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       ),
                     ),
                   ),
-                  // Badge Skor Kecocokan
-                  AppContainer.flat(
+
+                  // Badge tingkat kecocokan — AppContainer generic agar opacity terkontrol
+                  AppContainer(
                     width: null,
+                    showBorder: false,
+                    showShadow: false,
+                    opacity: 0.12,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 6,
                     ),
-                    color: AppColors.success.withValues(alpha: 0.1),
+                    color: AppColors.success,
                     borderRadius: BorderRadius.circular(8),
                     child: Text(
                       '${widget.matchScore.toInt()}% Cocok',
@@ -198,52 +200,58 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                   ),
                 ],
               ),
+            ),
 
-              // ── Bagian Expanded ───────────────────────────────────────
-              if (_isExpanded) ...[
-                AppSpacing.v12,
-                const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 1),
-                AppSpacing.v12,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // ── Expanded: waktu penggunaan + nomor BPOM ──────────────────
+            if (_isExpanded) ...[
+              // Divider expanded juga edge-to-edge
+              const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 1),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Column(
                   children: [
-                    Text(
-                      'Waktu Penggunaan',
-                      style: context.text.labelLarge?.copyWith(
-                        color: context.colors.outline,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Waktu Penggunaan',
+                          style: context.text.labelLarge?.copyWith(
+                            color: context.colors.outline,
+                          ),
+                        ),
+                        Text(
+                          friendlyUsageTime,
+                          style: context.text.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      friendlyUsageTime,
-                      style: context.text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: context.colors.onSurface,
-                      ),
+                    AppSpacing.v8,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Nomor BPOM',
+                          style: context.text.labelLarge?.copyWith(
+                            color: context.colors.outline,
+                          ),
+                        ),
+                        Text(
+                          widget.bpomNumber,
+                          style: context.text.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                AppSpacing.v8,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Nomor BPOM',
-                      style: context.text.labelLarge?.copyWith(
-                        color: context.colors.outline,
-                      ),
-                    ),
-                    Text(
-                      widget.bpomNumber,
-                      style: context.text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: context.colors.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

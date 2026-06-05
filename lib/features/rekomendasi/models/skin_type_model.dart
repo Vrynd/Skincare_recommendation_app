@@ -33,8 +33,10 @@ class SkinTypeModel {
   }
 
   /// Mendapatkan nama jenis kulit ramah pengguna dalam Bahasa Indonesia
-  String get displayName {
-    switch (skinTypeName.toLowerCase()) {
+  String get displayName => getDisplay(skinTypeName);
+
+  static String getDisplay(String? name) {
+    switch ((name ?? '').toLowerCase()) {
       case 'oily':
         return 'Kulit Berminyak';
       case 'dry':
@@ -46,7 +48,7 @@ class SkinTypeModel {
       case 'sensitive':
         return 'Kulit Sensitif';
       default:
-        return skinTypeName;
+        return name ?? '-';
     }
   }
 }
