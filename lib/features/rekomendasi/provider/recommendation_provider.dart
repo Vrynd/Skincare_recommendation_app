@@ -114,6 +114,10 @@ class RecommendationProvider extends ChangeNotifier {
         uvIndex: uvIndex,
         uvRiskLevel: uvRiskLevel,
       );
+
+      // Perbarui riwayat rekomendasi dan jumlah kategori di background
+      await fetchCategoryCounts(userId);
+
       return sessionId;
     } catch (e) {
       _errorMessage = 'Gagal mengirim formulir rekomendasi Anda.';

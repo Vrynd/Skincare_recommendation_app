@@ -280,7 +280,8 @@ class RecommendationService {
               category,
               usage_time,
               spf_value,
-              pa_grade
+              pa_grade,
+              bpom_number
             )
           ''')
           .eq('recommendation_session_id', sessionId)

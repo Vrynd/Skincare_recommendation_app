@@ -17,8 +17,8 @@ class AppDockSheet extends StatelessWidget {
 
   const AppDockSheet({
     super.key,
-    required this.title,
-    required this.description,
+    this.title = '',
+    this.description = '',
     required this.buttonTitle,
     this.switchValue,
     this.onSwitchChanged,
@@ -30,53 +30,59 @@ class AppDockSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveSwitchValue = showSwitch ? (switchValue ?? false) : true;
+    final showHeader = title.isNotEmpty || description.isNotEmpty || (showSwitch && switchValue != null && onSwitchChanged != null);
 
     return AppContainer(
       width: double.infinity,
       borderRadius: AppRadius.only(topLeft: 32, topRight: 32),
       borderColor: context.colors.outline.withValues(alpha: 0.12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      showShadow: false,
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           spacing: 20,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              spacing: 16,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    spacing: 4,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.text.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: context.colors.onSurface,
-                        ),
-                      ),
-                      Text(
-                        description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.text.bodyMedium?.copyWith(
-                          color: context.colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+            if (showHeader) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                spacing: 16,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: 4,
+                      children: [
+                        if (title.isNotEmpty)
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: context.colors.onSurface,
+                            ),
+                          ),
+                        if (description.isNotEmpty)
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.bodyMedium?.copyWith(
+                              color: context.colors.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                if (showSwitch && switchValue != null && onSwitchChanged != null)
-                  _DockSwitch(value: switchValue!, onChanged: onSwitchChanged!),
-              ],
-            ),
-            const AppDivider.dashed(),
+                  if (showSwitch && switchValue != null && onSwitchChanged != null)
+                    _DockSwitch(value: switchValue!, onChanged: onSwitchChanged!),
+                ],
+              ),
+              const AppDivider.dashed(),
+            ],
             AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
               opacity: effectiveSwitchValue ? 1.0 : 0.4,
