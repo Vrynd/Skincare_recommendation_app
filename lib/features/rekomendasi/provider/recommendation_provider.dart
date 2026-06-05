@@ -136,14 +136,29 @@ class RecommendationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Jalankan query secara paralel agar performa muatan data maksimal
-      final results = await Future.wait([
-        _recommendationService.fetchCategoryCounts(userId),
-        _recommendationService.fetchRecommendations(userId),
-      ]);
+      final recs = await _recommendationService.fetchRecommendations(userId);
+      _recommendations = recs;
 
-      _categoryCounts = results[0] as Map<String, int>;
-      _recommendations = results[1] as List<RecommendationModel>;
+      final counts = {
+        'Cleanser': 0,
+        'Toner': 0,
+        'Serum': 0,
+        'Moisture': 0,
+        'Sunscreen': 0,
+      };
+
+      for (final rec in recs) {
+        final cat = rec.category.toLowerCase();
+        if (cat == 'cleanser') counts['Cleanser'] = (counts['Cleanser'] ?? 0) + 1;
+        if (cat == 'toner') counts['Toner'] = (counts['Toner'] ?? 0) + 1;
+        if (cat == 'serum') counts['Serum'] = (counts['Serum'] ?? 0) + 1;
+        if (cat == 'moisturizer' || cat == 'moisture') {
+          counts['Moisture'] = (counts['Moisture'] ?? 0) + 1;
+        }
+        if (cat == 'sunscreen') counts['Sunscreen'] = (counts['Sunscreen'] ?? 0) + 1;
+      }
+
+      _categoryCounts = counts;
     } catch (e) {
       _errorMessage = 'Gagal memuat riwayat rekomendasi.';
       debugPrint('RecommendationProvider fetchCategoryCounts error: $e');

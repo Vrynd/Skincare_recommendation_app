@@ -30,7 +30,7 @@ class RecommendationModel {
       productName: (products['product_name'] as String?) ?? 'Produk Tidak Dikenal',
       brandName: (products['brand_name'] as String?) ?? 'Brand Tidak Dikenal',
       category: (products['category'] as String?) ?? 'Kategori',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );
   }
 }

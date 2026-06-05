@@ -150,19 +150,9 @@ class RecommendationService {
         'Sunscreen': 0,
       };
 
-      // Set untuk melacak produk unik yang sudah dihitung per kategori
-      final Map<String, Set<String>> countedProducts = {
-        'Cleanser': {},
-        'Toner': {},
-        'Serum': {},
-        'Moisture': {},
-        'Sunscreen': {},
-      };
-
       for (final item in data) {
-        final productId = item['product_id'] as String?;
         final products = item['products'] as Map<String, dynamic>?;
-        if (productId == null || products == null) continue;
+        if (products == null) continue;
 
         final rawCategory = products['category'] as String?;
         if (rawCategory == null) continue;
@@ -179,6 +169,7 @@ class RecommendationService {
             uiCategory = 'Serum';
             break;
           case 'moisturizer':
+          case 'moisture':
             uiCategory = 'Moisture';
             break;
           case 'sunscreen':
@@ -187,13 +178,9 @@ class RecommendationService {
         }
 
         if (uiCategory != null) {
-          countedProducts[uiCategory]!.add(productId);
+          counts[uiCategory] = (counts[uiCategory] ?? 0) + 1;
         }
       }
-
-      countedProducts.forEach((key, value) {
-        counts[key] = value.length;
-      });
 
       return counts;
     } catch (e) {
