@@ -8,6 +8,7 @@ import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/widgets/home_uv_gauge.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 
 class HomeUVIndex extends StatelessWidget {
   const HomeUVIndex({super.key});
@@ -15,15 +16,55 @@ class HomeUVIndex extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locationProvider = context.watch<HomeLocationProvider>();
+    final recommendationProvider = context.watch<RecommendationProvider>();
 
     final uvIndex = locationProvider.uvIndex;
     final UVRiskLevel uvRiskLevel = locationProvider.uvRiskLevel;
     final riskLevel = uvRiskLevel.name;
     final riskColor = uvRiskLevel.color;
-    final peakTimeRange = "${uvRiskLevel.recommendedSpf}+ SPF";
-    final durationText = locationProvider.uvDurationText;
-
     final isAnyLoading = locationProvider.isLoading || locationProvider.isUvLoading;
+
+    // Tentukan PA default berdasarkan standar WHO UV index
+    String defaultPa = 'PA++';
+    if (uvIndex > 5.0) defaultPa = 'PA+++';
+    if (uvIndex > 10.0) defaultPa = 'PA++++';
+
+    String protectionValue = "SPF ${uvRiskLevel.recommendedSpf}, $defaultPa";
+
+    // 1. Cari apakah ada sunscreen yang direkomendasikan untuk user di riwayat
+    final userSunscreens = recommendationProvider.recommendations
+        .where((item) => item.category.toLowerCase() == 'sunscreen')
+        .toList();
+
+    // 2. Tentukan proteksi yang direkomendasikan (hanya nilai proteksi, tanpa menyebutkan nama produk)
+    if (userSunscreens.isNotEmpty) {
+      // Jika user punya sunscreen hasil rekomendasi teranalisis, tampilkan proteksinya
+      final latestSun = userSunscreens.first;
+      final spf = latestSun.spfValue ?? 'SPF ${uvRiskLevel.recommendedSpf}';
+      final pa = latestSun.paGrade ?? defaultPa;
+      protectionValue = pa.isNotEmpty ? "$spf, $pa" : spf;
+    } else if (recommendationProvider.dbSunscreens.isNotEmpty) {
+      // Jika tidak ada riwayat, tapi database punya sunscreen, cari yang cocok dengan tingkat risiko UV index
+      int targetSpf = 15;
+      if (uvIndex > 5.0) targetSpf = 30;
+      if (uvIndex > 10.0) targetSpf = 50;
+
+      // Filter yang SPF-nya >= targetSpf
+      final matchingSuns = recommendationProvider.dbSunscreens.where((p) {
+        final spfStr = p['spf_value'] as String?;
+        if (spfStr == null) return false;
+        final num = int.tryParse(spfStr.replaceAll(RegExp(r'[^0-9]'), ''));
+        return num != null && num >= targetSpf;
+      }).toList();
+
+      final selectedSun = matchingSuns.isNotEmpty 
+          ? matchingSuns.first 
+          : recommendationProvider.dbSunscreens.first;
+
+      final spf = selectedSun['spf_value'] ?? 'SPF ${uvRiskLevel.recommendedSpf}';
+      final pa = selectedSun['pa_grade'] as String? ?? defaultPa;
+      protectionValue = pa.isNotEmpty ? "$spf, $pa" : spf;
+    }
 
     return AppContainer(
       borderRadius: AppRadius.br32,
@@ -59,8 +100,7 @@ class HomeUVIndex extends StatelessWidget {
                     child: _UVInfoSection(
                       riskLevel: riskLevel,
                       riskColor: riskColor,
-                      peakTimeRange: peakTimeRange,
-                      durationText: durationText,
+                      protectionValue: protectionValue,
                     ),
                   ),
                 ),
@@ -99,14 +139,12 @@ class _VerticalDivider extends StatelessWidget {
 class _UVInfoSection extends StatelessWidget {
   final String riskLevel;
   final Color riskColor;
-  final String peakTimeRange;
-  final String durationText;
+  final String protectionValue;
 
   const _UVInfoSection({
     required this.riskLevel,
     required this.riskColor,
-    required this.peakTimeRange,
-    required this.durationText,
+    required this.protectionValue,
   });
 
   @override
@@ -126,13 +164,7 @@ class _UVInfoSection extends StatelessWidget {
           icon: HugeIcons.strokeRoundedSun02,
           iconColor: AppColors.accentOrange,
           title: 'Proteksi',
-          value: peakTimeRange,
-        ),
-        _InfoRow(
-          icon: HugeIcons.strokeRoundedHourglass,
-          iconColor: AppColors.accentBlue,
-          title: 'Terbakar matahari',
-          value: durationText,
+          value: protectionValue,
         ),
       ],
     );
@@ -159,8 +191,8 @@ class _InfoRow extends StatelessWidget {
       spacing: 12,
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: iconColor.withValues(alpha: 0.12),
@@ -178,7 +210,7 @@ class _InfoRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: context.text.labelSmall?.copyWith(
+                style: context.text.labelMedium?.copyWith(
                   color: context.colors.surface.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w500,
                 ),

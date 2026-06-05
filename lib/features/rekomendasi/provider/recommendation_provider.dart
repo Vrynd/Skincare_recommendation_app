@@ -28,6 +28,9 @@ class RecommendationProvider extends ChangeNotifier {
   Map<String, dynamic>? _currentSessionDetails;
   List<Map<String, dynamic>> _currentSessionResults = [];
 
+  // State Sunscreen Aktif dari DB untuk kalkulasi UV protection
+  List<Map<String, dynamic>> _dbSunscreens = [];
+
   // State Umum Pemuatan & Error
   bool _isLoading = false;
   bool _isSubmitting = false;
@@ -48,6 +51,7 @@ class RecommendationProvider extends ChangeNotifier {
   // Getters Hasil Rekomendasi Sesi Terkini
   Map<String, dynamic>? get currentSessionDetails => _currentSessionDetails;
   List<Map<String, dynamic>> get currentSessionResults => _currentSessionResults;
+  List<Map<String, dynamic>> get dbSunscreens => _dbSunscreens;
 
   /// Memuat semua data master opsi formulir (dengan caching RAM)
   Future<void> loadFormOptions({bool force = false}) async {
@@ -159,6 +163,10 @@ class RecommendationProvider extends ChangeNotifier {
       }
 
       _categoryCounts = counts;
+
+      // Ambil produk sunscreen aktif dari database untuk integrasi UV protection
+      final suns = await _recommendationService.fetchActiveSunscreens();
+      _dbSunscreens = suns;
     } catch (e) {
       _errorMessage = 'Gagal memuat riwayat rekomendasi.';
       debugPrint('RecommendationProvider fetchCategoryCounts error: $e');

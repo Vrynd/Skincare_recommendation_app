@@ -109,7 +109,9 @@ class RecommendationService {
             products!inner (
               product_name,
               brand_name,
-              category
+              category,
+              spf_value,
+              pa_grade
             ),
             recommendation_sessions!inner (
               id_user,
@@ -277,6 +279,21 @@ class RecommendationService {
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       debugPrint('RecommendationService fetchSessionResults error: $e');
+      return [];
+    }
+  }
+
+  /// Mengambil daftar semua produk sunscreen aktif dari database
+  Future<List<Map<String, dynamic>>> fetchActiveSunscreens() async {
+    try {
+      final List<dynamic> data = await _supabase
+          .from('products')
+          .select('product_id, brand_name, product_name, category, spf_value, pa_grade')
+          .eq('category', 'sunscreen')
+          .eq('is_active', true);
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint('RecommendationService fetchActiveSunscreens error: $e');
       return [];
     }
   }

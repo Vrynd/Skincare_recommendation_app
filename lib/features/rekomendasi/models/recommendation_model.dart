@@ -7,6 +7,8 @@ class RecommendationModel {
   final String brandName;
   final String category;
   final DateTime createdAt;
+  final String? spfValue;
+  final String? paGrade;
 
   const RecommendationModel({
     required this.resultId,
@@ -16,6 +18,8 @@ class RecommendationModel {
     required this.brandName,
     required this.category,
     required this.createdAt,
+    this.spfValue,
+    this.paGrade,
   });
 
   /// Factory untuk membuat model dari data JSON hasil query Supabase
@@ -31,6 +35,8 @@ class RecommendationModel {
       brandName: (products['brand_name'] as String?) ?? 'Brand Tidak Dikenal',
       category: (products['category'] as String?) ?? 'Kategori',
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+      spfValue: products['spf_value'] as String?,
+      paGrade: products['pa_grade'] as String?,
     );
   }
 }
