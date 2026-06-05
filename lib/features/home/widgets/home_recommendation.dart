@@ -11,6 +11,7 @@ import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/models/recommendation_model.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/account/widgets/confirm_sheet.dart';
+import 'package:recommendation_app/features/rekomendasi/widgets/session_summary_sheet.dart';
 
 class HomeRecommendation extends StatelessWidget {
   final RecommendationModel recommendation;
@@ -79,12 +80,19 @@ class HomeRecommendation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final brandColor = _getBrandColor(recommendation.brandName);
-    return AppContainer(
-      padding: EdgeInsets.zero,
-      borderRadius: AppRadius.br32,
-      opacity: 0.6,
-      showShadow: false,
-      child: Row(
+    return GestureDetector(
+      onTap: () {
+        SessionSummarySheet.show(
+          context: context,
+          sessionId: recommendation.sessionId,
+        );
+      },
+      child: AppContainer(
+        padding: EdgeInsets.zero,
+        borderRadius: AppRadius.br32,
+        opacity: 0.6,
+        showShadow: false,
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           spacing: 4,
           children: [
@@ -194,6 +202,7 @@ class HomeRecommendation extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
