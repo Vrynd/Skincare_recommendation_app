@@ -297,4 +297,17 @@ class RecommendationService {
       return [];
     }
   }
+
+  /// Menghapus baris hasil rekomendasi tertentu berdasarkan ID hasil rekomendasi
+  Future<void> deleteRecommendationResult(String resultId) async {
+    try {
+      await _supabase
+          .from('recommendation_results')
+          .delete()
+          .eq('recommendation_result_id', resultId);
+    } catch (e) {
+      debugPrint('RecommendationService deleteRecommendationResult error: $e');
+      rethrow;
+    }
+  }
 }

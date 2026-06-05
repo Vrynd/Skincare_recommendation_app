@@ -200,4 +200,25 @@ class RecommendationProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Menghapus item hasil rekomendasi dan memuat ulang status kategori
+  Future<bool> deleteRecommendation(String resultId, String userId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _recommendationService.deleteRecommendationResult(resultId);
+      // Panggil fetchCategoryCounts untuk sinkronisasi data riwayat terbaru
+      await fetchCategoryCounts(userId);
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal menghapus riwayat rekomendasi.';
+      debugPrint('RecommendationProvider deleteRecommendation error: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

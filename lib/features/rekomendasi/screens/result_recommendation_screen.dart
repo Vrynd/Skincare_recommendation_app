@@ -99,8 +99,8 @@ class _ResultRecommendationScreenState
               )
             else ...[
               _buildSummary(context, provider.currentSessionDetails),
-              AppSpacing.v20,
-              const AppTitleAction.none(title: 'Rangkaian Skincare'),
+              AppSpacing.v32,
+              const AppTitleAction.none(title: 'Rekomandasi Produk'),
               AppSpacing.v12,
               ...provider.currentSessionResults.map(productCard),
             ],
