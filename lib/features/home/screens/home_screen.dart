@@ -66,20 +66,29 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (recommendation.recommendations.isEmpty) {
-      return const AppEmptyState(
+    final filteredRecs = recommendation.recommendations.where((item) {
+      final itemCat = item.category.toLowerCase();
+      final targetCat = _selectedCategory.toLowerCase();
+      if (targetCat == 'moisture') {
+        return itemCat == 'moisturizer' || itemCat == 'moisture';
+      }
+      return itemCat == targetCat;
+    }).toList();
+
+    if (filteredRecs.isEmpty) {
+      return AppEmptyState(
         height: 250,
         icon: HugeIcons.strokeRoundedClock01,
-        title: 'Belum Ada Rekomendasi',
+        title: 'Tidak Ada Rekomendasi',
         description:
-            'Belum ada riwayat. Mulai rekomendasi pertama Anda untuk melihatnya di sini',
+            'Belum ada riwayat rekomendasi untuk kategori $_selectedCategory',
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: recommendation.recommendations
+      children: filteredRecs
           .map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 12),

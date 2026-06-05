@@ -156,6 +156,15 @@ Deno.serve(async (req) => {
     const scored_products = [];
 
     for (const product of products) {
+      // Filter khusus: Jangan rekomendasikan sunscreen jika waktu pakai adalah Malam hari
+      const productCategory = product.category ? product.category.toLowerCase() : '';
+      const mappedUserUsageTime = body.usage_time ? body.usage_time.toLowerCase() : '';
+      if (mappedUserUsageTime === 'malam' || mappedUserUsageTime === 'night') {
+        if (productCategory === 'sunscreen') {
+          continue; // Skip sunscreen di malam hari
+        }
+      }
+
       // Layer 1 — Filter F1 (hanya jika known)
       if (body.allergy_status === 'known') {
         const isSafe = runFilterF1(product, body.avoided_ingredient_ids);
