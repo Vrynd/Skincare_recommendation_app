@@ -96,15 +96,14 @@ class AuthProvider extends ChangeNotifier {
 
   /// Mengakhiri sesi aktif pengguna saat ini (sign out)
   Future<void> signOut() async {
-    _setLoading(true);
+    _currentUser = null;
+    _clearError();
+    notifyListeners();
+
     try {
       await _authService.signOutCurrentUser();
-      _currentUser = null;
-      _clearError();
     } catch (e) {
       _errorMessage = 'Gagal mengakhiri sesi aktif.';
-    } finally {
-      _setLoading(false);
     }
   }
 

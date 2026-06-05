@@ -102,8 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final recommendation = context.watch<RecommendationProvider>();
     final user = auth.currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+    final recommendation = context.watch<RecommendationProvider>();
 
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
@@ -116,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.only(left: 20, right: 20),
               child: HomeGreeting(
                 greeting: _getGreeting(),
-                fullName: user?.namaLengkap,
+                fullName: user.namaLengkap,
               ),
             ),
             AppSpacing.v24,
