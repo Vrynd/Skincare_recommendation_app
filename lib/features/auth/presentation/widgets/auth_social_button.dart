@@ -11,7 +11,6 @@ class AuthSocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Definisikan list konfigurasi data tombol
     final List<Map<String, dynamic>> socialProviders = [
       {
         'title': 'Google',

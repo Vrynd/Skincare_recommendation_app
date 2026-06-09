@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
@@ -20,20 +21,32 @@ class AuthHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppContainer(
-              shape: BoxShape.circle,
-              width: 48,
-              height: 48,
-              opacity: 0.8,
-              padding: EdgeInsets.zero,
-              showShadow: false,
-              child: Center(
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedArrowLeft02,
-                  color: context.colors.onSurface,
-                  size: 24,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    }
+                  },
+                  child: AppContainer(
+                    shape: BoxShape.circle,
+                    width: 48,
+                    height: 48,
+                    opacity: 0.8,
+                    padding: EdgeInsets.zero,
+                    showShadow: false,
+                    child: Center(
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedArrowLeft02,
+                        color: context.colors.onSurface,
+                        size: 24,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
             AppSpacing.v32,
             Column(
@@ -52,7 +65,7 @@ class AuthHeader extends StatelessWidget {
                 Text(
                   subtitle,
                   style: context.text.bodyMedium?.copyWith(
-                    color: context.colors.onSurface,
+                    color: context.colors.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
