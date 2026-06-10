@@ -9,6 +9,7 @@ import 'package:recommendation_app/features/home/provider/home_location_provider
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
 import 'package:recommendation_app/features/navigations/provider/navigation_provider.dart';
+import 'package:recommendation_app/features/history/provider/history_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => RecommendationProvider()),
         ChangeNotifierProvider(create: (_) => RecommendationFormProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()),
       ],
       child: MyApp(authProvider: authProvider),
     ),
