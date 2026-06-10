@@ -33,7 +33,7 @@ class HistoryStats extends StatelessWidget {
     ];
 
     return Row(
-      spacing: 16,
+      spacing: 12,
       children: stats.map((stat) {
         return Expanded(
           child: AppContainer(

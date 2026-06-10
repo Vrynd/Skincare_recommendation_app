@@ -14,6 +14,10 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double toolbarHeight;
   final VoidCallback? onNotificationPressed;
   final VoidCallback? onProfilePressed;
+  final Widget? leading;
+  final double? leadingWidth;
+  final bool automaticallyImplyLeading;
+  final List<Widget>? actions;
 
   const AppAppBar({
     super.key,
@@ -23,6 +27,10 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.toolbarHeight = 65.0,
     this.onNotificationPressed,
     this.onProfilePressed,
+    this.leading,
+    this.leadingWidth,
+    this.automaticallyImplyLeading = true,
+    this.actions,
   });
 
   @override
@@ -31,6 +39,9 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     final user = authProvider.currentUser;
 
     return AppBar(
+      leading: leading,
+      leadingWidth: leadingWidth,
+      automaticallyImplyLeading: automaticallyImplyLeading,
       toolbarHeight: toolbarHeight,
       elevation: (scrollOffset / 40.0).clamp(0.0, 1.0) * 1.5,
       scrolledUnderElevation: 0,
@@ -44,7 +55,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: context.colors.onSurface,
         ),
       ),
-      actions: [
+      actions: actions ?? [
         Padding(
           padding: const EdgeInsets.only(right: 20),
           child: AppContainer(

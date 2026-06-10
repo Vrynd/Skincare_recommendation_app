@@ -125,7 +125,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children.add(
           TitleDate(
             title: monthYear,
-            padding: const EdgeInsets.only(top: 16, bottom: 12),
+            padding: const EdgeInsets.only(top: 12, bottom: 12),
           ),
         );
 
@@ -167,85 +167,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
         },
-        child: CustomScrollView(
+        child: ListView(
           controller: _scrollController,
-          slivers: [
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverSearchHeaderDelegate(
-                scrollOffset: _scrollOffset,
-                builder: (context, isPinned) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: context.colors.lightBackground,
-                      boxShadow: isPinned
-                          ? [
-                              BoxShadow(
-                                color: context.colors.shadow.withValues(
-                                  alpha: 0.05,
-                                ),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: AppSearchBar(
-                      controller: _searchController,
-                      onChanged: (val) {
-                        historyProvider.setSearchQuery(val);
-                      },
-                      onFilterTap: () {
-                        debugPrint('Filter diketuk: ${_searchController.text}');
-                      },
-                    ),
-                  );
-                },
-              ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 48),
+          children: [
+            AppSearchBar(
+              controller: _searchController,
+              onChanged: (val) {
+                historyProvider.setSearchQuery(val);
+              },
+              onFilterTap: () {
+                debugPrint('Filter diketuk: ${_searchController.text}');
+              },
             ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate(
-                  _buildHistoryList(context, historyProvider),
-                ),
-              ),
-            ),
+            AppSpacing.v12,
+            ..._buildHistoryList(context, historyProvider),
           ],
         ),
       ),
     );
-  }
-}
-
-class _SliverSearchHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final double scrollOffset;
-  final Widget Function(BuildContext context, bool isPinned) builder;
-
-  _SliverSearchHeaderDelegate({
-    required this.scrollOffset,
-    required this.builder,
-  });
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final isPinned = scrollOffset > 0.0;
-    return builder(context, isPinned);
-  }
-
-  @override
-  double get maxExtent => 84.0;
-
-  @override
-  double get minExtent => 84.0;
-
-  @override
-  bool shouldRebuild(covariant _SliverSearchHeaderDelegate oldDelegate) {
-    return oldDelegate.scrollOffset != scrollOffset;
   }
 }

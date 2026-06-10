@@ -27,10 +27,9 @@ class AppSearchBar extends StatelessWidget {
       opacity: 0.8,
       showBorder: false,
       showShadow: false,
-      height: 60,
       width: double.infinity,
       borderRadius: AppRadius.br32,
-      padding: const EdgeInsets.only(left: 16, right: 4),
+      padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
       alignment: Alignment.center,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

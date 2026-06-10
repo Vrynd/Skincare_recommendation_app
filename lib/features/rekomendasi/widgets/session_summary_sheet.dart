@@ -109,9 +109,9 @@ class _SessionSummarySheetState extends State<SessionSummarySheet> {
 
     final concernDisplay = concerns.isEmpty
         ? '-'
-        : concerns.length <= 2
-            ? concerns.map(SkinConcernModel.getDisplay).join(', ')
-            : '${concerns.take(2).map(SkinConcernModel.getDisplay).join(', ')}, ...';
+        : concerns.length <= 1
+            ? SkinConcernModel.getDisplay(concerns.first)
+            : '${SkinConcernModel.getDisplay(concerns.first)}, ...';
 
     final uvStr = uvDisplay(
       session['uv_index'],

@@ -390,11 +390,11 @@ Deno.serve(async (req) => {
     const userSkinCode = mapSkinTypeCode(skinTypeData.skin_type_code || skinTypeData.skin_type_name);
     const userConcernCodes = skinConcernsData.map(item => mapConcernCode(item.skin_concern_code || item.skin_concern_name));
 
-    // Get auto-avoided ingredient IDs for 'unknown_ingredient'
+    // Get auto-avoided ingredient IDs for 'unknown_ingredient' and sensitive skin
     const { data: autoAvoidData } = await adminClient
       .from('ingredients')
       .select('ingredient_id, ingredient_code')
-      .in('ingredient_code', ['oxybenzone', 'fragrance']);
+      .in('ingredient_code', ['oxybenzone', 'benzophenone_3', 'fragrance']);
     const autoAvoidIds = (autoAvoidData || []).map(item => item.ingredient_id);
 
     // --- Fetch Active Products with Relations ---
@@ -439,12 +439,40 @@ Deno.serve(async (req) => {
       const productIngredientIds = product.product_ingredients?.map((pi: any) => pi.ingredient_id) || [];
 
       // ─────────────────────────────────────
-      // HARD FILTER 1: RIWAYAT ALERGI
+      // HARD FILTER 1: RIWAYAT ALERGI & SAFETY AUTO-FILTER
       // ─────────────────────────────────────
       let passAllergy = true;
 
+      // A. Safety Auto-Filter berdasarkan Tipe Kulit dan Masalah Kulit
+      // Tipe Kulit Sensitif ATAU Masalah Kulit Sensitif/Iritasi
+      const isSensitiveCondition = userSkinCode === 'sensitive' || userConcernCodes.includes('sensitive_irritation');
+      if (isSensitiveCondition) {
+        const hasSensitiveIrritants = productIngredientCodes.includes('fragrance') ||
+                                      productIngredientCodes.includes('oxybenzone') ||
+                                      productIngredientCodes.includes('benzophenone_3') ||
+                                      productIngredientCodes.includes('geranium_oil') ||
+                                      productIngredientCodes.includes('flavour') ||
+                                      productIngredientIds.some((id: string) => autoAvoidIds.includes(id));
+        if (hasSensitiveIrritants) {
+          passAllergy = false;
+        }
+      }
+
+      // Tipe Kulit Kering
+      if (userSkinCode === 'dry') {
+        const hasDryIrritants = productIngredientCodes.includes('alcohol') ||
+                                productIngredientCodes.includes('alcohol_denat') ||
+                                productIngredientCodes.includes('t_butyl_alcohol') ||
+                                productIngredientCodes.includes('ethanol');
+        if (hasDryIrritants) {
+          passAllergy = false;
+        }
+      }
+
+      // B. Filter Alergi Manual (sebagai cadangan/input langsung API)
       if (body.allergy_status === 'unknown_ingredient') {
         const hasAutoAvoid = productIngredientCodes.includes('oxybenzone') ||
+                             productIngredientCodes.includes('benzophenone_3') ||
                              productIngredientCodes.includes('fragrance') ||
                              productIngredientIds.some((id: string) => autoAvoidIds.includes(id));
         if (hasAutoAvoid) {

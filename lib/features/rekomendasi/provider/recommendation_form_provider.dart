@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
-import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 
@@ -11,8 +10,6 @@ class RecommendationFormProvider extends ChangeNotifier {
   String? _selectedActivity;
   String? _selectedTexture;
   String? _selectedUsageTime;
-  String? _selectedAllergyStatus;
-  List<IngredientModel> _selectedIngredients = [];
   bool _isConfirmed = false;
 
   // State Otomatis Lokasi & UV (bagian dari payload formulir)
@@ -27,8 +24,6 @@ class RecommendationFormProvider extends ChangeNotifier {
   String? get selectedActivity => _selectedActivity;
   String? get selectedTexture => _selectedTexture;
   String? get selectedUsageTime => _selectedUsageTime;
-  String? get selectedAllergyStatus => _selectedAllergyStatus;
-  List<IngredientModel> get selectedIngredients => _selectedIngredients;
   bool get isConfirmed => _isConfirmed;
 
   // Getters Lokasi & UV
@@ -79,22 +74,7 @@ class RecommendationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Mengatur status alergi
-  void setSelectedAllergyStatus(String? value) {
-    _selectedAllergyStatus = value;
-    if (value != 'Ya, pernah (tahu kandungan yang harus dihindari)') {
-      _selectedIngredients = [];
-    }
-    _isConfirmed = false;
-    notifyListeners();
-  }
-
-  /// Mengatur pilihan bahan kimia yang dihindari (multi-selection)
-  void setSelectedIngredients(List<IngredientModel> values) {
-    _selectedIngredients = values;
-    _isConfirmed = false;
-    notifyListeners();
-  }
+  // Logika alergi ditiadakan di UI karena sudah di-handle otomatis oleh Safety Auto-Filter di backend
 
   /// Mengubah status konfirmasi data formulir
   void setIsConfirmed(bool value) {
@@ -135,8 +115,6 @@ class RecommendationFormProvider extends ChangeNotifier {
     _selectedActivity = null;
     _selectedTexture = null;
     _selectedUsageTime = null;
-    _selectedAllergyStatus = null;
-    _selectedIngredients = [];
     _isConfirmed = false;
 
     // Bersihkan juga data lokasi & UV
@@ -184,20 +162,10 @@ class RecommendationFormProvider extends ChangeNotifier {
     };
   }
 
-  /// Memetakan label riwayat alergi ke format enum database Supabase
-  String get mappedAllergyStatus => switch (_selectedAllergyStatus) {
-    'Tidak, tidak pernah' => 'none',
-    'Ya, pernah (tidak tahu kandungannya)' => 'unknown_ingredient',
-    'Ya, pernah (tahu kandungan yang harus dihindari)' => 'known_ingredient',
-    _ => 'none',
-  };
+  /// Memetakan label riwayat alergi ke format enum database Supabase (selalu 'none' karena di-handle otomatis di backend)
+  String get mappedAllergyStatus => 'none';
 
   bool get isFormValid {
-    final isAllergyWithIngredients =
-        _selectedAllergyStatus == 'Ya, pernah (tahu kandungan yang harus dihindari)';
-    final hasInvalidAllergy =
-        isAllergyWithIngredients && _selectedIngredients.isEmpty;
-
     final requiresUsageTime = isNight;
     final hasInvalidUsageTime = requiresUsageTime && _selectedUsageTime == null;
 
@@ -205,8 +173,6 @@ class RecommendationFormProvider extends ChangeNotifier {
         _selectedSkinProblems.isNotEmpty &&
         _selectedActivity != null &&
         _selectedTexture != null &&
-        _selectedAllergyStatus != null &&
-        !hasInvalidAllergy &&
         !hasInvalidUsageTime;
   }
 }

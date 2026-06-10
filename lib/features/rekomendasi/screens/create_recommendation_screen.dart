@@ -1,20 +1,20 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
+import 'package:recommendation_app/core/widgets/app_bar.dart';
 import 'package:recommendation_app/core/widgets/app_dock_sheet.dart';
 import 'package:recommendation_app/core/widgets/app_navigation.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
-import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/core/widgets/app_snackbar.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
-import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
-import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
-import 'package:recommendation_app/features/rekomendasi/widgets/recommendation_form.dart';
-import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/history/provider/history_provider.dart';
+import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/widgets/recommendation_form.dart';
 
 class CreateRecommendationScreen extends StatefulWidget {
   const CreateRecommendationScreen({super.key});
@@ -26,33 +26,37 @@ class CreateRecommendationScreen extends StatefulWidget {
 
 class _CreateRecommendationScreenState
     extends State<CreateRecommendationScreen> {
-  late ScrollController _scrollController;
-  bool _showStickyHeader = false;
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController()..addListener(_scrollListener);
+    _scrollController.addListener(_onScroll);
     // Memuat data opsi master dari Supabase saat layar dibuka
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RecommendationProvider>().loadFormOptions();
+      if (mounted) {
+        context.read<RecommendationProvider>().loadFormOptions();
+      }
     });
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _scrollListener() {
-    const threshold = 40.0;
+  void _onScroll() {
     if (_scrollController.hasClients) {
-      final isScrolled = _scrollController.offset > threshold;
-      if (isScrolled != _showStickyHeader) {
+      final offset = _scrollController.offset;
+      if (offset <= 40.0) {
         setState(() {
-          _showStickyHeader = isScrolled;
+          _scrollOffset = offset;
+        });
+      } else if (_scrollOffset < 40.0) {
+        setState(() {
+          _scrollOffset = 40.0;
         });
       }
     }
@@ -94,9 +98,7 @@ class _CreateRecommendationScreenState
       selectedConcernIds: formProvider.selectedSkinProblems
           .map((p) => p.skinConcernId)
           .toList(),
-      avoidedIngredientIds: formProvider.selectedIngredients
-          .map((i) => i.ingredientId)
-          .toList(),
+      avoidedIngredientIds: const [],
       locationName: formProvider.locationName,
       latitude: formProvider.latitude,
       longitude: formProvider.longitude,
@@ -116,7 +118,9 @@ class _CreateRecommendationScreenState
         'Rekomendasi berhasil dibuat berdasarkan analisis kulit Anda.',
       );
       // Arahkan pengguna ke layar hasil rekomendasi
-      context.pushReplacement('${AppRouter.recommendationResultPath}/$sessionId');
+      context.pushReplacement(
+        '${AppRouter.recommendationResultPath}/$sessionId',
+      );
     } else {
       AppSnackBar.showError(
         context,
@@ -132,73 +136,47 @@ class _CreateRecommendationScreenState
 
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                children: [
-                  AppNavigation(
-                    rightAction: NavigationCircleButton(
-                      size: 48,
-                      onTap: () => formProvider.resetForm(),
-                      child: Icon(
-                        Icons.refresh_rounded,
-                        color: context.colors.onSurface,
-                        size: 22,
-                      ),
-                    ),
-                  ),
-                  AppSpacing.v16,
-                  const RecommendationForm(),
-                ],
+      appBar: AppAppBar(
+        title: 'Buat Rekomendasi',
+        scrollOffset: _scrollOffset,
+        leadingWidth: 66,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: NavigationCircleButton(
+              size: 48,
+              onTap: () => context.pop(),
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowLeft02,
+                color: context.colors.onSurface,
+                size: 24,
               ),
             ),
-
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOutCubic,
-              top: _showStickyHeader ? 0 : -80,
-              left: 0,
-              right: 0,
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.lightBackground.withValues(
-                        alpha: 0.85,
-                      ),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: context.colors.outline.withValues(alpha: 0.08),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: AppNavigation(
-                      seamless: true,
-                      rightAction: NavigationCircleButton(
-                        size: 48,
-                        seamless: true,
-                        onTap: () => formProvider.resetForm(),
-                        child: Icon(
-                          Icons.refresh_rounded,
-                          color: context.colors.onSurface,
-                          size: 22,
-                        ),
-                      ),
-                    ),
-                  ),
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: Center(
+              child: NavigationCircleButton(
+                size: 48,
+                onTap: () => formProvider.resetForm(),
+                child: Icon(
+                  Icons.refresh_rounded,
+                  color: context.colors.onSurface,
+                  size: 22,
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          controller: _scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          children: const [
+            RecommendationForm(),
           ],
         ),
       ),

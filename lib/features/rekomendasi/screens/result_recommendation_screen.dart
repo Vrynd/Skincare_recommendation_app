@@ -6,6 +6,7 @@ import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_empty_state.dart';
+import 'package:recommendation_app/core/widgets/app_bar.dart';
 import 'package:recommendation_app/core/widgets/app_navigation.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
@@ -27,9 +28,13 @@ class ResultRecommendationScreen extends StatefulWidget {
 
 class _ResultRecommendationScreenState
     extends State<ResultRecommendationScreen> {
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<RecommendationProvider>().loadSessionResults(
@@ -40,21 +45,56 @@ class _ResultRecommendationScreenState
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final offset = _scrollController.offset;
+      if (offset <= 40.0) {
+        setState(() {
+          _scrollOffset = offset;
+        });
+      } else if (_scrollOffset < 40.0) {
+        setState(() {
+          _scrollOffset = 40.0;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<RecommendationProvider>();
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
+      appBar: AppAppBar(
+        title: 'Hasil Rekomendasi',
+        scrollOffset: _scrollOffset,
+        leadingWidth: 66,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: NavigationCircleButton(
+              size: 48,
+              onTap: () => context.go(AppRouter.homePath),
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowLeft02,
+                color: context.colors.onSurface,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+        actions: const [],
+      ),
       body: SafeArea(
         child: ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
-            AppNavigation(
-              title: 'Hasil Rekomendasi',
-              showBackButton: true,
-              onBackTap: () => context.go(AppRouter.homePath),
-              rightAction: const SizedBox.shrink(),
-            ),
-            AppSpacing.v16,
             if (provider.isLoading)
               const AppEmptyState(
                 icon: HugeIcons.strokeRoundedHourglass,
@@ -122,9 +162,9 @@ class _ResultRecommendationScreenState
     );
     final concernDisplay = concerns.isEmpty
         ? '-'
-        : concerns.length <= 2
-            ? concerns.map(SkinConcernModel.getDisplay).join(', ')
-            : '${concerns.take(2).map(SkinConcernModel.getDisplay).join(', ')}, ...';
+        : concerns.length <= 1
+        ? SkinConcernModel.getDisplay(concerns.first)
+        : '${SkinConcernModel.getDisplay(concerns.first)}, ...';
     final uvStr = uvDisplay(
       session['uv_index'],
       session['uv_risk_level'] as String?,
