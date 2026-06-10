@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
+import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final String initialName;
+  final String? initialName;
   final double scrollOffset;
   final double toolbarHeight;
   final VoidCallback? onNotificationPressed;
@@ -15,7 +17,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   const AppAppBar({
     super.key,
     required this.title,
-    required this.initialName,
+    this.initialName,
     this.scrollOffset = 0.0,
     this.toolbarHeight = 65.0,
     this.onNotificationPressed,
@@ -24,6 +26,22 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final user = authProvider.currentUser;
+
+    String displayInitial = '?';
+    if (initialName != null && initialName!.isNotEmpty) {
+      displayInitial = initialName!;
+    } else if (user != null && user.namaLengkap != null && user.namaLengkap!.trim().isNotEmpty) {
+      final name = user.namaLengkap!.trim();
+      final parts = name.split(RegExp(r'\s+'));
+      if (parts.length > 1) {
+        displayInitial = (parts[0][0] + parts[1][0]).toUpperCase();
+      } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+        displayInitial = parts[0][0].toUpperCase();
+      }
+    }
+
     return AppBar(
       toolbarHeight: toolbarHeight,
       elevation: (scrollOffset / 40.0).clamp(0.0, 1.0) * 1.5,
@@ -91,7 +109,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
                       shape: BoxShape.circle,
                       child: Center(
                         child: Text(
-                          initialName.toUpperCase(),
+                          displayInitial,
                           style: context.text.titleLarge?.copyWith(
                             color: context.colors.onSurface,
                           ),

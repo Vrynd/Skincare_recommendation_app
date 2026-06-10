@@ -71,7 +71,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: context.colors.lightBackground,
       appBar: AppAppBar(
         title: 'Riwayat Rekomendasi',
-        initialName: 'Rv',
         scrollOffset: _scrollOffset,
       ),
       body: CustomScrollView(
@@ -97,7 +96,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ]
                         : null,
                   ),
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                   child: AppSearchBar(
                     controller: _searchController,
                     onFilterTap: () {
@@ -128,6 +127,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   onTapMore: () => _tapToDelete('Skintific'),
                 ),
                 AppSpacing.v24,
+
                 TitleDate(
                   title: 'Selasa, 12:00',
                   padding: const EdgeInsets.only(bottom: 12),
@@ -169,10 +169,10 @@ class _SliverSearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 78.0;
+  double get maxExtent => 84.0;
 
   @override
-  double get minExtent => 78.0;
+  double get minExtent => 84.0;
 
   @override
   bool shouldRebuild(covariant _SliverSearchHeaderDelegate oldDelegate) {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
+import 'package:recommendation_app/core/widgets/app_bar.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
-import 'package:recommendation_app/features/account/widgets/account_header.dart';
 import 'package:recommendation_app/features/account/widgets/confirm_sheet.dart';
 import 'package:recommendation_app/features/account/widgets/group_title.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
@@ -107,13 +107,13 @@ class _AccountScreenState extends State<AccountScreen> {
 
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
+      appBar: AppAppBar(
+        title: 'Akun Saya',
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
           children: [
-            AccountHeader(),
-            AppSpacing.v16,
-
             AccountProfile(
               name: fullName,
               email: email,
