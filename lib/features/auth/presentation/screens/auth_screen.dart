@@ -167,7 +167,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ? 'Belum punya akun? Ketuk daftar di bawah'
                     : 'Sudah memiliki akun? Masuk untuk melanjutkan perjalanan',
               ),
-              const SizedBox(height: 20),
+              AppSpacing.v20,
               Expanded(
                 flex: 3,
                 child: AppContainer.card(

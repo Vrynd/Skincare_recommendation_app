@@ -1,0 +1,26 @@
+import 'package:flutter/material.dart';
+import 'package:recommendation_app/core/themes/app_theme.dart';
+
+class TitleDate extends StatelessWidget {
+  final String title;
+  final EdgeInsetsGeometry padding;
+
+  const TitleDate({
+    super.key,
+    required this.title,
+    this.padding = const EdgeInsets.only(bottom: 8, left: 8),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      child: Text(
+        title.toUpperCase(),
+        style: context.text.labelMedium?.copyWith(
+          color: context.colors.onSurfaceVariant.withValues(alpha: 0.8),
+        ),
+      ),
+    );
+  }
+}
