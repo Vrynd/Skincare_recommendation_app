@@ -133,16 +133,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
         for (final item in items) {
           children.add(
             HistoryTile(
-              date: item.formattedDay,
-              dayOfWeek: item.formattedDayOfWeekShort,
               time: item.formattedTime,
               label: item.brandName,
-              title: '${item.productName} (SPF ${item.spf})',
+              title: item.productName,
               onTap: () {},
               onTapMore: () => _tapToDelete(item),
             ),
           );
-          children.add(AppSpacing.v16);
+          children.add(AppSpacing.v8);
         }
         children.add(AppSpacing.v8);
       });

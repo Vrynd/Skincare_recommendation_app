@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
@@ -14,6 +13,7 @@ class ProductRecommendationCard extends StatefulWidget {
   final String category;
   final String usageTime;
   final double matchScore;
+  final String recommendationCategory;
 
   const ProductRecommendationCard({
     super.key,
@@ -23,6 +23,7 @@ class ProductRecommendationCard extends StatefulWidget {
     required this.category,
     required this.usageTime,
     required this.matchScore,
+    required this.recommendationCategory,
   });
 
   @override
@@ -33,8 +34,6 @@ class ProductRecommendationCard extends StatefulWidget {
 class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
   bool _isExpanded = false;
 
-  // Warna accent dinamis berdasarkan nama brand — hash deterministik (djb2-style)
-  // agar distribusi warna merata dan tidak bergantung hashCode internal Dart
   Color _getBrandColor(String brand) {
     const accents = [
       AppColors.accentPurple,
@@ -56,16 +55,47 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     return accents[hash % accents.length];
   }
 
-  // Icon yang menggambarkan kategori produk
-  dynamic _getCategoryIcon(String cat) {
-    return switch (cat.toLowerCase()) {
-      'cleanser' => HugeIcons.strokeRoundedClean,
-      'toner' => HugeIcons.strokeRoundedDroplet,
-      'serum' => HugeIcons.strokeRoundedDroplet,
-      'moisturizer' || 'moisture' => HugeIcons.strokeRoundedClean,
-      'sunscreen' => HugeIcons.strokeRoundedSun02,
-      _ => HugeIcons.strokeRoundedClean,
+  String get _recommendationCategoryLabel {
+    return switch (widget.recommendationCategory.toLowerCase()) {
+      'highly_recommended' => 'Sangat Direkomendasikan',
+      'recommended' => 'Direkomendasikan',
+      'fairly_suitable' => 'Cukup Sesuai',
+      _ => 'Sesuai',
     };
+  }
+
+  Color get _recommendationCategoryColor {
+    return switch (widget.recommendationCategory.toLowerCase()) {
+      'highly_recommended' => AppColors.success,
+      'recommended' => AppColors.accentBlue,
+      'fairly_suitable' => AppColors.accentOrange,
+      _ => AppColors.info,
+    };
+  }
+
+  int get _starCount {
+    return switch (widget.recommendationCategory.toLowerCase()) {
+      'highly_recommended' => 4,
+      'recommended' => 3,
+      'fairly_suitable' => 2,
+      _ => 1,
+    };
+  }
+
+  Widget _buildStars(BuildContext context) {
+    final filled = _starCount;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 2,
+      children: List.generate(4, (index) {
+        final isFilled = index < filled;
+        return Icon(
+          Icons.star_rounded,
+          color: isFilled ? AppColors.accentAmber : context.colors.onSurfaceVariant.withValues(alpha: 0.2),
+          size: 18,
+        );
+      }),
+    );
   }
 
   String _formatUsageTime(String time) {
@@ -83,7 +113,6 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
   @override
   Widget build(BuildContext context) {
     final brandColor = _getBrandColor(widget.brandName);
-    final categoryIcon = _getCategoryIcon(widget.category);
     final friendlyUsageTime = _formatUsageTime(widget.usageTime);
 
     return AppContainer(
@@ -128,21 +157,38 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                     ),
                   ),
                   AppSpacing.h16,
-                  // Ilustrasi kategori — AppContainer generic agar opacity terkontrol
+                  // Nilai skor kecocokan (e.g. 90%)
                   AppContainer(
-                    width: 48,
-                    height: 48,
+                    width: 52,
+                    height: 52,
                     color: brandColor,
-                    opacity: 0.12,
+                    opacity: 0.08,
                     showBorder: false,
                     showShadow: false,
                     borderRadius: BorderRadius.circular(16),
                     padding: EdgeInsets.zero,
                     alignment: Alignment.center,
-                    child: HugeIcon(
-                      icon: categoryIcon,
-                      color: brandColor,
-                      size: 24,
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${widget.matchScore.toInt()}',
+                            style: context.text.titleLarge?.copyWith(
+                              color: brandColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '%',
+                            style: context.text.labelSmall?.copyWith(
+                              color: brandColor.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -158,7 +204,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Badge kategori — netral
+                  // Kategori rekomendasi
                   AppContainer(
                     width: null,
                     showBorder: false,
@@ -167,37 +213,20 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       horizontal: 8,
                       vertical: 4,
                     ),
-                    color: context.colors.surfaceContainerHigh,
+                    color: _recommendationCategoryColor,
+                    opacity: 0.12,
                     borderRadius: BorderRadius.circular(6),
                     child: Text(
-                      widget.category.toUpperCase(),
+                      _recommendationCategoryLabel.toUpperCase(),
                       style: context.text.labelSmall?.copyWith(
-                        color: context.colors.onSurfaceVariant,
+                        color: _recommendationCategoryColor,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-
-                  // Badge tingkat kecocokan — AppContainer generic agar opacity terkontrol
-                  AppContainer(
-                    width: null,
-                    showBorder: false,
-                    showShadow: false,
-                    opacity: 0.12,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    color: AppColors.success,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Text(
-                      '${widget.matchScore.toInt()}% Cocok',
-                      style: context.text.labelMedium?.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+ 
+                  // Rating bintang
+                  _buildStars(context),
                 ],
               ),
             ),

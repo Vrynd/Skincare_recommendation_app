@@ -14,6 +14,7 @@ import 'package:recommendation_app/features/rekomendasi/provider/recommendation_
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/widgets/recommendation_form.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
+import 'package:recommendation_app/features/history/provider/history_provider.dart';
 
 class CreateRecommendationScreen extends StatefulWidget {
   const CreateRecommendationScreen({super.key});
@@ -71,10 +72,7 @@ class _CreateRecommendationScreenState
     final provider = context.read<RecommendationProvider>();
     final formProvider = context.read<RecommendationFormProvider>();
 
-    final skinType = formProvider.selectedSkinType;
-    final usageTime = formProvider.selectedUsageTime;
-    final allergyStatus = formProvider.selectedAllergyStatus;
-    if (skinType == null || usageTime == null || allergyStatus == null) {
+    if (!formProvider.isFormValid) {
       AppSnackBar.showError(
         context,
         'Silakan lengkapi semua pilihan formulir terlebih dahulu.',
@@ -82,6 +80,7 @@ class _CreateRecommendationScreenState
       return;
     }
 
+    final skinType = formProvider.selectedSkinType!;
     final locationProvider = context.read<HomeLocationProvider>();
     formProvider.updateLocationAndUv(locationProvider);
 
@@ -90,6 +89,8 @@ class _CreateRecommendationScreenState
       skinTypeId: skinType.skinTypeId,
       usageTime: formProvider.mappedUsageTime,
       allergyStatus: formProvider.mappedAllergyStatus,
+      activity: formProvider.mappedActivity,
+      texturePreference: formProvider.mappedTexture,
       selectedConcernIds: formProvider.selectedSkinProblems
           .map((p) => p.skinConcernId)
           .toList(),
@@ -105,6 +106,10 @@ class _CreateRecommendationScreenState
 
     if (!mounted) return;
     if (sessionId != null) {
+      // Perbarui riwayat rekomendasi di HistoryProvider agar langsung muncul
+      if (mounted) {
+        context.read<HistoryProvider>().loadHistory(userId);
+      }
       formProvider.resetForm();
       AppSnackBar.showSuccess(
         context,

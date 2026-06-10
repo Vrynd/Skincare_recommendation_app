@@ -37,9 +37,17 @@ class HistoryProvider extends ChangeNotifier {
     return '${avg.round()}%';
   }
 
-  /// Mengelompokkan riwayat berdasarkan Bulan & Tahun (Bahasa Indonesia)
+  /// Mengelompokkan riwayat berdasarkan Hari (Bahasa Indonesia)
   Map<String, List<HistoryItem>> get groupedHistory {
     final Map<String, List<HistoryItem>> groups = {};
+    
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    const List<String> daysFull = [
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    ];
     
     const List<String> monthsFull = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -48,8 +56,18 @@ class HistoryProvider extends ChangeNotifier {
 
     for (final item in historyItems) {
       final date = item.createdAt;
-      final monthName = monthsFull[date.month - 1];
-      final key = '$monthName ${date.year}';
+      final localDate = DateTime(date.year, date.month, date.day);
+      
+      String key;
+      if (localDate == today) {
+        key = 'Hari Ini';
+      } else if (localDate == yesterday) {
+        key = 'Kemarin';
+      } else {
+        final dayName = daysFull[date.weekday - 1];
+        final monthName = monthsFull[date.month - 1];
+        key = '$dayName, ${date.day} $monthName ${date.year}';
+      }
       
       if (!groups.containsKey(key)) {
         groups[key] = [];

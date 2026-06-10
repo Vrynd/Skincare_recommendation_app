@@ -80,6 +80,7 @@ Widget productCard(Map<String, dynamic> item) {
       category: p['category'] as String? ?? '-',
       usageTime: p['usage_time'] as String? ?? '-',
       matchScore: (item['match_score'] as num?)?.toDouble() ?? 0,
+      recommendationCategory: item['recommendation_category'] as String? ?? '',
     ),
   );
 }

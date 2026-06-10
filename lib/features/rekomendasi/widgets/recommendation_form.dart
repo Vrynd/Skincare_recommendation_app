@@ -12,16 +12,36 @@ import 'package:recommendation_app/features/rekomendasi/widgets/multiple_choice.
 class RecommendationForm extends StatelessWidget {
   const RecommendationForm({super.key});
 
-  static const List<String> _usageTimes = [
-    'Pagi Hari',
-    'Pagi & Malam Hari',
-    'Malam Hari',
+  static const List<String> _activities = [
+    'Dalam Ruangan (Indoor)',
+    'Luar Ruangan Ringan',
+    'Luar Ruangan Intens',
+    'Olahraga / Sport',
+    'Berenang / Aktivitas Air',
+  ];
+
+  static const List<String> _textures = [
+    'Gel',
+    'Cream',
+    'Lotion',
+    'Serum',
+    'Milk',
+    'Watery',
+    'Stick',
+    'Spray',
+    'Mist',
   ];
 
   static const List<String> _allergyStatuses = [
-    'Tidak Ada Riwayat Alergi',
-    'Pernah Alergi, tapi Tidak Tahu Bahannya',
-    'Pernah Alergi terhadap Bahan Tertentu',
+    'Tidak, tidak pernah',
+    'Ya, pernah (tidak tahu kandungannya)',
+    'Ya, pernah (tahu kandungan yang harus dihindari)',
+  ];
+
+  static const List<String> _usageTimes = [
+    'Pagi Hari',
+    'Siang Hari',
+    'Malam Hari',
   ];
 
   @override
@@ -30,15 +50,18 @@ class RecommendationForm extends StatelessWidget {
     final formProvider = context.watch<RecommendationFormProvider>();
 
     final showAllergenForm = formProvider.selectedAllergyStatus ==
-        'Pernah Alergi terhadap Bahan Tertentu';
+        'Ya, pernah (tahu kandungan yang harus dihindari)';
+        
+    final showUsageTimeForm = formProvider.isNight;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Pertanyaan 1
         SingleChoice<SkinTypeModel>(
           indexNumber: '01',
-          question: 'Jenis Kulit Anda',
+          question: '1. Apa jenis kulitmu?',
           options: provider.skinTypes,
           selectedOption: formProvider.selectedSkinType,
           optionLabelBuilder: (type) => type.displayName,
@@ -49,9 +72,10 @@ class RecommendationForm extends StatelessWidget {
         ),
         AppSpacing.v16,
 
+        // Pertanyaan 2
         MultipleChoice<SkinConcernModel>(
           indexNumber: '02',
-          question: 'Fokus Masalah Kulit (Pilihan Ganda)',
+          question: '2. Apa masalah kulitmu saat ini?',
           options: provider.skinConcerns,
           selectedOptions: formProvider.selectedSkinProblems,
           optionLabelBuilder: (problem) => problem.displayName,
@@ -62,22 +86,39 @@ class RecommendationForm extends StatelessWidget {
         ),
         AppSpacing.v16,
 
+        // Pertanyaan 3
         SingleChoice<String>(
           indexNumber: '03',
-          question: 'Waktu Penggunaan Skincare',
-          options: _usageTimes,
-          selectedOption: formProvider.selectedUsageTime,
-          optionLabelBuilder: (time) => time,
+          question: '3. Bagaimana aktivitasmu saat menggunakan sunscreen?',
+          options: _activities,
+          selectedOption: formProvider.selectedActivity,
+          optionLabelBuilder: (activity) => activity,
           isLoading: provider.isLoading && provider.skinTypes.isEmpty,
-          onOptionSelected: (time) {
-            formProvider.setSelectedUsageTime(time);
+          onOptionSelected: (activity) {
+            formProvider.setSelectedActivity(activity);
           },
         ),
         AppSpacing.v16,
 
+        // Pertanyaan 4
         SingleChoice<String>(
           indexNumber: '04',
-          question: 'Riwayat Alergi Produk',
+          question: '4. Tekstur sunscreen seperti apa yang kamu sukai?',
+          options: _textures,
+          selectedOption: formProvider.selectedTexture,
+          optionLabelBuilder: (texture) => texture,
+          isLoading: provider.isLoading && provider.skinTypes.isEmpty,
+          onOptionSelected: (texture) {
+            formProvider.setSelectedTexture(texture);
+          },
+        ),
+        AppSpacing.v16,
+
+        // Pertanyaan 5
+        SingleChoice<String>(
+          indexNumber: '05',
+          question:
+              '5. Apakah kamu pernah mengalami reaksi tidak nyaman seperti gatal, kemerahan, atau iritasi setelah memakai sunscreen?',
           options: _allergyStatuses,
           selectedOption: formProvider.selectedAllergyStatus,
           optionLabelBuilder: (status) => status,
@@ -87,10 +128,11 @@ class RecommendationForm extends StatelessWidget {
           },
         ),
 
+        // Sub-pertanyaan Alergen jika terpilih
         if (showAllergenForm) ...[
           AppSpacing.v24,
           MultipleChoice<IngredientModel>(
-            indexNumber: '05',
+            indexNumber: '5a',
             question: 'Kandungan yang Dihindari (Alergen)',
             options: provider.ingredients,
             selectedOptions: formProvider.selectedIngredients,
@@ -98,6 +140,22 @@ class RecommendationForm extends StatelessWidget {
             isLoading: provider.isLoading && provider.ingredients.isEmpty,
             onOptionsChanged: (ingredients) {
               formProvider.setSelectedIngredients(ingredients);
+            },
+          ),
+        ],
+
+        // Pertanyaan 6 (Kondisional Malam Hari)
+        if (showUsageTimeForm) ...[
+          AppSpacing.v16,
+          SingleChoice<String>(
+            indexNumber: '06',
+            question: '6. Kapan kamu akan menggunakan sunscreen ini?',
+            options: _usageTimes,
+            selectedOption: formProvider.selectedUsageTime,
+            optionLabelBuilder: (time) => time,
+            isLoading: provider.isLoading && provider.skinTypes.isEmpty,
+            onOptionSelected: (time) {
+              formProvider.setSelectedUsageTime(time);
             },
           ),
         ],

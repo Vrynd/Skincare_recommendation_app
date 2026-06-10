@@ -60,6 +60,8 @@ class RecommendationService {
     required String skinTypeId,
     required String usageTime,
     required String allergyStatus,
+    required String activity,
+    required String? texturePreference,
     required List<String> selectedConcernIds,
     required List<String> avoidedIngredientIds,
     String? locationName,
@@ -69,28 +71,20 @@ class RecommendationService {
     String? uvRiskLevel,
   }) async {
     try {
-      // Map usage_time to usage_time_preference format expected by Edge Function
-      String usageTimePref = 'realtime';
-      if (usageTime == 'morning_day') {
-        usageTimePref = 'morning';
-      } else if (usageTime == 'night') {
-        usageTimePref = 'evening';
-      }
-
       final response = await _supabase.functions.invoke(
         'get_sunscreen_recommendation',
         body: {
           'user_id': userId,
           'skin_type_id': skinTypeId,
           'skin_concern_ids': selectedConcernIds,
-          'activity': 'indoor', // Default activity since not collected in form UI
-          'texture_preference': null, // Default texture preference since not collected in form UI
+          'activity': activity,
+          'texture_preference': texturePreference,
           'allergy_status': allergyStatus,
           'avoided_ingredient_ids': avoidedIngredientIds,
           'location_name': locationName,
           'latitude': latitude ?? 0.0,
           'longitude': longitude ?? 0.0,
-          'usage_time_preference': usageTimePref,
+          'usage_time_preference': usageTime,
         },
       );
 
@@ -277,6 +271,7 @@ class RecommendationService {
           .select('''
             recommendation_result_id,
             match_score,
+            recommendation_category,
             rank_position,
             products (
               product_id,

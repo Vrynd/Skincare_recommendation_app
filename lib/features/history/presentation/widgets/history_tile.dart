@@ -6,8 +6,6 @@ import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 
 class HistoryTile extends StatelessWidget {
-  final String date;
-  final String dayOfWeek;
   final String time;
   final String label;
   final String title;
@@ -16,8 +14,6 @@ class HistoryTile extends StatelessWidget {
 
   const HistoryTile({
     super.key,
-    required this.date,
-    required this.dayOfWeek,
     required this.time,
     required this.label,
     required this.title,
@@ -64,32 +60,18 @@ class HistoryTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             spacing: 16,
             children: [
-              AppContainer(
-                color: context.colors.onSurfaceVariant,
-                opacity: 0.06,
-                showBorder: false,
-                showShadow: false,
-                width: 50,
-                height: 50,
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        dayOfWeek.toUpperCase(),
-                        style: context.text.bodyMedium?.copyWith(
-                          color: context.colors.onSurface,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      date,
-                      style: context.text.titleLarge?.copyWith(
-                        color: context.colors.onSurface,
-                      ),
-                    ),
-                  ],
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: brandColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedClock01,
+                  size: 22,
+                  color: brandColor,
                 ),
               ),
               Expanded(
@@ -105,22 +87,18 @@ class HistoryTile extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           spacing: 8,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
+                            Text(
+                              label.toUpperCase(),
+                              style: context.text.labelSmall?.copyWith(
+                                color: brandColor,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
                               ),
-                              decoration: BoxDecoration(
-                                color: brandColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Text(
-                                label.toUpperCase(),
-                                style: context.text.labelSmall?.copyWith(
-                                  color: brandColor,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
+                            ),
+                            Text(
+                              '•',
+                              style: context.text.labelSmall?.copyWith(
+                                color: context.colors.outline.withValues(alpha: 0.5),
                               ),
                             ),
                             Text(
@@ -156,8 +134,6 @@ class HistoryTile extends StatelessWidget {
                       style: context.text.titleLarge?.copyWith(
                         color: context.colors.onSurface,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

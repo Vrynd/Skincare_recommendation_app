@@ -8,6 +8,8 @@ import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 class RecommendationFormProvider extends ChangeNotifier {
   SkinTypeModel? _selectedSkinType;
   List<SkinConcernModel> _selectedSkinProblems = [];
+  String? _selectedActivity;
+  String? _selectedTexture;
   String? _selectedUsageTime;
   String? _selectedAllergyStatus;
   List<IngredientModel> _selectedIngredients = [];
@@ -22,6 +24,8 @@ class RecommendationFormProvider extends ChangeNotifier {
 
   SkinTypeModel? get selectedSkinType => _selectedSkinType;
   List<SkinConcernModel> get selectedSkinProblems => _selectedSkinProblems;
+  String? get selectedActivity => _selectedActivity;
+  String? get selectedTexture => _selectedTexture;
   String? get selectedUsageTime => _selectedUsageTime;
   String? get selectedAllergyStatus => _selectedAllergyStatus;
   List<IngredientModel> get selectedIngredients => _selectedIngredients;
@@ -33,6 +37,12 @@ class RecommendationFormProvider extends ChangeNotifier {
   double? get longitude => _longitude;
   double? get uvIndex => _uvIndex;
   String? get uvRiskLevel => _uvRiskLevel;
+
+  /// Memeriksa apakah waktu saat ini adalah malam hari (jam lokal perangkat >= 18 atau < 6)
+  bool get isNight {
+    final hour = DateTime.now().hour;
+    return hour >= 18 || hour < 6;
+  }
 
   /// Mengatur pilihan tipe kulit
   void setSelectedSkinType(SkinTypeModel? value) {
@@ -48,6 +58,20 @@ class RecommendationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mengatur pilihan aktivitas harian
+  void setSelectedActivity(String? value) {
+    _selectedActivity = value;
+    _isConfirmed = false;
+    notifyListeners();
+  }
+
+  /// Mengatur pilihan preferensi tekstur
+  void setSelectedTexture(String? value) {
+    _selectedTexture = value;
+    _isConfirmed = false;
+    notifyListeners();
+  }
+
   /// Mengatur pilihan waktu penggunaan skincare
   void setSelectedUsageTime(String? value) {
     _selectedUsageTime = value;
@@ -55,9 +79,10 @@ class RecommendationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mengatur status alergi
   void setSelectedAllergyStatus(String? value) {
     _selectedAllergyStatus = value;
-    if (value != 'Pernah Alergi terhadap Bahan Tertentu') {
+    if (value != 'Ya, pernah (tahu kandungan yang harus dihindari)') {
       _selectedIngredients = [];
     }
     _isConfirmed = false;
@@ -107,6 +132,8 @@ class RecommendationFormProvider extends ChangeNotifier {
   void resetForm() {
     _selectedSkinType = null;
     _selectedSkinProblems = [];
+    _selectedActivity = null;
+    _selectedTexture = null;
     _selectedUsageTime = null;
     _selectedAllergyStatus = null;
     _selectedIngredients = [];
@@ -122,32 +149,64 @@ class RecommendationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Memetakan label waktu penggunaan ke format enum database Supabase
-  String get mappedUsageTime => switch (_selectedUsageTime) {
-    'Pagi Hari' => 'morning_day',
-    'Pagi & Malam Hari' => 'morning_and_night',
-    'Malam Hari' => 'night',
-    _ => 'morning_and_night',
+  /// Memetakan aktivitas ke nilai database
+  String get mappedActivity => switch (_selectedActivity) {
+    'Dalam Ruangan (Indoor)' => 'indoor',
+    'Luar Ruangan Ringan' => 'outdoor_light',
+    'Luar Ruangan Intens' => 'outdoor_intense',
+    'Olahraga / Sport' => 'sport',
+    'Berenang / Aktivitas Air' => 'swim',
+    _ => 'indoor',
   };
+
+  /// Memetakan tekstur ke nilai database
+  String? get mappedTexture => switch (_selectedTexture) {
+    'Gel' => 'gel',
+    'Cream' => 'cream',
+    'Lotion' => 'lotion',
+    'Serum' => 'serum',
+    'Milk' => 'milk',
+    'Watery' => 'watery',
+    'Stick' => 'stick',
+    'Spray' => 'spray',
+    'Mist' => 'mist',
+    _ => null,
+  };
+
+  /// Memetakan label waktu penggunaan ke format enum database Supabase
+  String get mappedUsageTime {
+    if (!isNight) return 'realtime';
+    return switch (_selectedUsageTime) {
+      'Pagi Hari' => 'morning',
+      'Siang Hari' => 'afternoon',
+      'Malam Hari' => 'evening',
+      _ => 'morning',
+    };
+  }
 
   /// Memetakan label riwayat alergi ke format enum database Supabase
   String get mappedAllergyStatus => switch (_selectedAllergyStatus) {
-    'Tidak Ada Riwayat Alergi' => 'none',
-    'Pernah Alergi, tapi Tidak Tahu Bahannya' => 'unknown_ingredient',
-    'Pernah Alergi terhadap Bahan Tertentu' => 'known_ingredient',
+    'Tidak, tidak pernah' => 'none',
+    'Ya, pernah (tidak tahu kandungannya)' => 'unknown_ingredient',
+    'Ya, pernah (tahu kandungan yang harus dihindari)' => 'known_ingredient',
     _ => 'none',
   };
 
   bool get isFormValid {
     final isAllergyWithIngredients =
-        _selectedAllergyStatus == 'Pernah Alergi terhadap Bahan Tertentu';
+        _selectedAllergyStatus == 'Ya, pernah (tahu kandungan yang harus dihindari)';
     final hasInvalidAllergy =
         isAllergyWithIngredients && _selectedIngredients.isEmpty;
 
+    final requiresUsageTime = isNight;
+    final hasInvalidUsageTime = requiresUsageTime && _selectedUsageTime == null;
+
     return _selectedSkinType != null &&
         _selectedSkinProblems.isNotEmpty &&
-        _selectedUsageTime != null &&
+        _selectedActivity != null &&
+        _selectedTexture != null &&
         _selectedAllergyStatus != null &&
-        !hasInvalidAllergy;
+        !hasInvalidAllergy &&
+        !hasInvalidUsageTime;
   }
 }

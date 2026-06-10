@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
-import 'package:recommendation_app/core/widgets/app_dock_sheet.dart';
 import 'package:recommendation_app/core/widgets/app_empty_state.dart';
 import 'package:recommendation_app/core/widgets/app_navigation.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
@@ -106,11 +105,6 @@ class _ResultRecommendationScreenState
             ],
           ],
         ),
-      ),
-      bottomNavigationBar: AppDockSheet(
-        buttonTitle: 'Kembali ke Beranda',
-        showSwitch: false,
-        onButtonTap: () => context.go(AppRouter.homePath),
       ),
     );
   }
