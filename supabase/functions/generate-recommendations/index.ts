@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { saveRecommendationSession, fetchAllActiveProducts, getSkinTypeCode, getConcernCodes } from "./db.ts";
 import { runFilterF1 } from "./filter.ts";

@@ -39,12 +39,12 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      idUser: json['id_user'] as String,
-      namaLengkap: json['nama_lengkap'] as String?,
+      idUser: (json['user_id'] ?? json['id_user']) as String,
+      namaLengkap: (json['full_name'] ?? json['nama_lengkap']) as String?,
       email: json['email'] as String?,
-      fotoProfile: json['foto_profile'] as String?,
+      fotoProfile: (json['avatar_url'] ?? json['foto_profile']) as String?,
       role: UserRole.fromString(json['role'] as String?),
-      statusAkun: json['status_akun'] as bool? ?? true,
+      statusAkun: (json['is_active'] ?? json['status_akun']) as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
@@ -54,12 +54,12 @@ class UserModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id_user': idUser,
-      'nama_lengkap': namaLengkap,
+      'user_id': idUser,
+      'full_name': namaLengkap,
       'email': email,
-      'foto_profile': fotoProfile,
+      'avatar_url': fotoProfile,
       'role': role.toJson(),
-      'status_akun': statusAkun,
+      'is_active': statusAkun,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

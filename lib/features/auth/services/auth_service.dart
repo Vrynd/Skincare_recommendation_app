@@ -13,7 +13,7 @@ class AuthService {
       final data = await _supabase
           .from('users')
           .select()
-          .eq('id_user', user.id)
+          .eq('user_id', user.id)
           .single();
 
       return UserModel.fromJson(data);
@@ -76,7 +76,7 @@ class AuthService {
       final data = await _supabase
           .from('users')
           .select()
-          .eq('id_user', idUser)
+          .eq('user_id', idUser)
           .single();
       return UserModel.fromJson(data);
     } catch (e) {

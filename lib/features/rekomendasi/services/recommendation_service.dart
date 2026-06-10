@@ -69,19 +69,28 @@ class RecommendationService {
     String? uvRiskLevel,
   }) async {
     try {
+      // Map usage_time to usage_time_preference format expected by Edge Function
+      String usageTimePref = 'realtime';
+      if (usageTime == 'morning_day') {
+        usageTimePref = 'morning';
+      } else if (usageTime == 'night') {
+        usageTimePref = 'evening';
+      }
+
       final response = await _supabase.functions.invoke(
-        'generate-recommendations',
+        'get_sunscreen_recommendation',
         body: {
+          'user_id': userId,
           'skin_type_id': skinTypeId,
           'skin_concern_ids': selectedConcernIds,
-          'usage_time': usageTime,
+          'activity': 'indoor', // Default activity since not collected in form UI
+          'texture_preference': null, // Default texture preference since not collected in form UI
           'allergy_status': allergyStatus,
           'avoided_ingredient_ids': avoidedIngredientIds,
           'location_name': locationName,
-          'latitude': latitude,
-          'longitude': longitude,
-          'uv_index': uvIndex,
-          'uv_risk_level': uvRiskLevel,
+          'latitude': latitude ?? 0.0,
+          'longitude': longitude ?? 0.0,
+          'usage_time_preference': usageTimePref,
         },
       );
 
@@ -89,7 +98,7 @@ class RecommendationService {
         throw Exception(response.data['error'] ?? 'Gagal membuat rekomendasi');
       }
 
-      final String sessionId = response.data['session_id'] as String;
+      final String sessionId = response.data['recommendation_session_id'] as String;
       return sessionId;
     } catch (e) {
       debugPrint('RecommendationService submitRecommendations error: $e');
@@ -109,19 +118,29 @@ class RecommendationService {
             products!inner (
               product_name,
               brand_name,
-              category,
-              spf_value,
+              spf,
               pa_grade
             ),
             recommendation_sessions!inner (
-              id_user,
+              user_id,
               recommendation_code
             )
           ''')
-          .eq('recommendation_sessions.id_user', userId)
+          .eq('recommendation_sessions.user_id', userId)
           .order('created_at', ascending: false);
 
-      return data.map((json) => RecommendationModel.fromJson(json)).toList();
+      final mappedData = data.map((json) {
+        final Map<String, dynamic> mutableJson = Map<String, dynamic>.from(json);
+        if (mutableJson['products'] != null) {
+          final Map<String, dynamic> product = Map<String, dynamic>.from(mutableJson['products']);
+          product['category'] = 'sunscreen';
+          product['spf_value'] = product['spf']?.toString() ?? '15';
+          mutableJson['products'] = product;
+        }
+        return mutableJson;
+      }).toList();
+
+      return mappedData.map((json) => RecommendationModel.fromJson(json)).toList();
     } catch (e) {
       debugPrint('RecommendationService fetchRecommendations error: $e');
       rethrow;
@@ -135,54 +154,20 @@ class RecommendationService {
           .from('recommendation_results')
           .select('''
             product_id,
-            products!inner (
-              category
-            ),
             recommendation_sessions!inner (
-              id_user
+              user_id
             )
           ''')
-          .eq('recommendation_sessions.id_user', userId);
+          .eq('recommendation_sessions.user_id', userId);
 
+      // Since the new database and recommendations are exclusively sunscreen
       final counts = {
         'Cleanser': 0,
         'Toner': 0,
         'Serum': 0,
         'Moisture': 0,
-        'Sunscreen': 0,
+        'Sunscreen': data.length,
       };
-
-      for (final item in data) {
-        final products = item['products'] as Map<String, dynamic>?;
-        if (products == null) continue;
-
-        final rawCategory = products['category'] as String?;
-        if (rawCategory == null) continue;
-
-        String? uiCategory;
-        switch (rawCategory.toLowerCase()) {
-          case 'cleanser':
-            uiCategory = 'Cleanser';
-            break;
-          case 'toner':
-            uiCategory = 'Toner';
-            break;
-          case 'serum':
-            uiCategory = 'Serum';
-            break;
-          case 'moisturizer':
-          case 'moisture':
-            uiCategory = 'Moisture';
-            break;
-          case 'sunscreen':
-            uiCategory = 'Sunscreen';
-            break;
-        }
-
-        if (uiCategory != null) {
-          counts[uiCategory] = (counts[uiCategory] ?? 0) + 1;
-        }
-      }
 
       return counts;
     } catch (e) {
@@ -200,19 +185,50 @@ class RecommendationService {
           .select('''
             recommendation_session_id,
             recommendation_code,
-            usage_time,
+            usage_time_preference,
             allergy_status,
             location_name,
             latitude,
             longitude,
             uv_index,
-            uv_risk_level,
             skin_types (
               skin_type_name
             )
           ''')
           .eq('recommendation_session_id', sessionId)
           .single();
+
+      // Calculate UV risk level dynamically for backward compatibility
+      double? uvVal = sessionData['uv_index'] != null 
+          ? double.tryParse(sessionData['uv_index'].toString()) 
+          : null;
+      String riskLevel = 'low';
+      if (uvVal != null) {
+        if (uvVal <= 2) {
+          riskLevel = 'low';
+        } else if (uvVal <= 5) {
+          riskLevel = 'moderate';
+        } else if (uvVal <= 7) {
+          riskLevel = 'high';
+        } else if (uvVal <= 10) {
+          riskLevel = 'very_high';
+        } else {
+          riskLevel = 'extreme';
+        }
+      }
+
+      // Map usage_time_preference back to usage_time labels for UI compatibility
+      String usageTime = 'Pagi & Malam Hari';
+      String? pref = sessionData['usage_time_preference'] as String?;
+      if (pref == 'morning') {
+        usageTime = 'Pagi Hari';
+      } else if (pref == 'evening') {
+        usageTime = 'Malam Hari';
+      }
+
+      final Map<String, dynamic> modifiedSession = Map<String, dynamic>.from(sessionData);
+      modifiedSession['usage_time'] = usageTime;
+      modifiedSession['uv_risk_level'] = riskLevel;
 
       // 2. Ambil masalah kulit terpilih
       final List<dynamic> concernsData = await _supabase
@@ -243,7 +259,7 @@ class RecommendationService {
           .toList();
 
       return {
-        'session': sessionData,
+        'session': modifiedSession,
         'concerns': concerns,
         'ingredients': ingredients,
       };
@@ -266,9 +282,7 @@ class RecommendationService {
               product_id,
               brand_name,
               product_name,
-              category,
-              usage_time,
-              spf_value,
+              spf,
               pa_grade,
               bpom_number
             )
@@ -276,7 +290,19 @@ class RecommendationService {
           .eq('recommendation_session_id', sessionId)
           .order('rank_position', ascending: true);
 
-      return List<Map<String, dynamic>>.from(data);
+      // Map products to include category and spf_value for backward compatibility
+      final mappedData = data.map((item) {
+        final Map<String, dynamic> mutableItem = Map<String, dynamic>.from(item);
+        if (mutableItem['products'] != null) {
+          final Map<String, dynamic> product = Map<String, dynamic>.from(mutableItem['products']);
+          product['category'] = 'sunscreen';
+          product['spf_value'] = product['spf']?.toString() ?? '15';
+          mutableItem['products'] = product;
+        }
+        return mutableItem;
+      }).toList();
+
+      return List<Map<String, dynamic>>.from(mappedData);
     } catch (e) {
       debugPrint('RecommendationService fetchSessionResults error: $e');
       return [];
@@ -288,10 +314,17 @@ class RecommendationService {
     try {
       final List<dynamic> data = await _supabase
           .from('products')
-          .select('product_id, brand_name, product_name, category, spf_value, pa_grade')
-          .eq('category', 'sunscreen')
+          .select('product_id, brand_name, product_name, spf, pa_grade')
           .eq('is_active', true);
-      return List<Map<String, dynamic>>.from(data);
+
+      final mappedData = data.map((item) {
+        final Map<String, dynamic> mutableItem = Map<String, dynamic>.from(item);
+        mutableItem['category'] = 'sunscreen';
+        mutableItem['spf_value'] = mutableItem['spf']?.toString() ?? '15';
+        return mutableItem;
+      }).toList();
+
+      return List<Map<String, dynamic>>.from(mappedData);
     } catch (e) {
       debugPrint('RecommendationService fetchActiveSunscreens error: $e');
       return [];
