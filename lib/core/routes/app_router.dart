@@ -1,12 +1,14 @@
 import 'package:go_router/go_router.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/auth/presentation/screens/auth_screen.dart';
+import 'package:recommendation_app/features/auth/presentation/screens/splash_screen.dart';
 import 'package:recommendation_app/features/navigations/screens/navigation_screen.dart';
 import 'package:recommendation_app/features/rekomendasi/screens/create_recommendation_screen.dart';
 import 'package:recommendation_app/features/rekomendasi/screens/result_recommendation_screen.dart';
 
 class AppRouter {
   // Rute Path Fisik
+  static const String splashPath = '/splash';
   static const String loginPath = '/login';
   static const String registerPath = '/register';
   static const String forgotPasswordPath = '/forgot-password';
@@ -15,6 +17,7 @@ class AppRouter {
   static const String recommendationResultPath = '/recommendation-result';
 
   // Rute Nama Logis (Named Routing)
+  static const String splashName = 'splash';
   static const String loginName = 'login';
   static const String registerName = 'register';
   static const String forgotPasswordName = 'forgot-password';
@@ -24,20 +27,30 @@ class AppRouter {
 
   static GoRouter createRouter(AuthProvider authProvider) {
     return GoRouter(
-      initialLocation: loginPath,
+      initialLocation: splashPath,
       refreshListenable: authProvider,
       redirect: (context, state) {
-        if (authProvider.isLoading) return null;
+        if (authProvider.isLoading) {
+          return splashPath;
+        }
 
         final isLoggedIn = authProvider.isAuthenticated;
-        final isOnAuthPage = state.matchedLocation == loginPath;
 
         if (isLoggedIn) {
+          final isOnAuthPage = state.matchedLocation == loginPath ||
+              state.matchedLocation == splashPath;
           return isOnAuthPage ? homePath : null;
+        } else {
+          final isOnLoginPage = state.matchedLocation == loginPath;
+          return isOnLoginPage ? null : loginPath;
         }
-        return isOnAuthPage ? null : loginPath;
       },
       routes: [
+        GoRoute(
+          path: splashPath,
+          name: splashName,
+          builder: (context, state) => const SplashScreen(),
+        ),
         GoRoute(
           path: loginPath,
           name: loginName,
