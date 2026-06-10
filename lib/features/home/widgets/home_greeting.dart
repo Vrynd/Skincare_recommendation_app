@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
-import 'package:recommendation_app/core/widgets/app_container.dart';
+import 'package:recommendation_app/core/widgets/app_avatar.dart';
 
 class HomeGreeting extends StatelessWidget {
   final String greeting;
@@ -19,7 +19,10 @@ class HomeGreeting extends StatelessWidget {
         Expanded(
           child: _GreetingText(greeting: greeting, displayName: nameToDisplay),
         ),
-        _GreetingAvatar(name: nameToDisplay),
+        AppAvatar(
+          fullName: nameToDisplay,
+          size: 48,
+        ),
       ],
     );
   }
@@ -68,38 +71,4 @@ class _GreetingText extends StatelessWidget {
   }
 }
 
-class _GreetingAvatar extends StatelessWidget {
-  final String name;
 
-  const _GreetingAvatar({required this.name});
-
-  String _getInitials(String name) {
-    if (name.trim().isEmpty) return 'P';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return parts[0][0].toUpperCase();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppContainer(
-      width: 48,
-      height: 48,
-      shape: BoxShape.circle,
-      opacity: 0.8,
-      showBorder: false,
-      showShadow: false,
-      padding: EdgeInsets.zero,
-      child: Center(
-        child: Text(
-          _getInitials(name),
-          style: context.text.titleLarge?.copyWith(
-            color: context.colors.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
-}

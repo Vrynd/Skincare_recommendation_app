@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:recommendation_app/features/home/models/home_location_data.dart';
 import 'package:recommendation_app/features/home/models/home_uv_data.dart';
@@ -14,6 +15,7 @@ class HomeStorageService {
   static const String _keyUvSunburn = 'cached_uv_sunburn';
   static const String _keyUvSpf = 'cached_uv_spf';
   static const String _keyUvTimestamp = 'cached_uv_timestamp';
+  static const String _keyUvHourly = 'cached_uv_hourly';
 
   /// Membaca data lokasi ter-cache secara aman dalam bentuk objek HomeLocationData
   Future<HomeLocationData?> getCachedLocation() async {
@@ -57,14 +59,26 @@ class HomeStorageService {
       final sunburn = prefs.getString(_keyUvSunburn);
       final spf = prefs.getString(_keyUvSpf);
       final timestamp = prefs.getString(_keyUvTimestamp);
+      final hourlyJson = prefs.getString(_keyUvHourly);
 
       if (uv != null && peakTime != null && sunburn != null && spf != null && timestamp != null) {
+        List<HourlyUVForecast>? hourlyForecast;
+        if (hourlyJson != null) {
+          try {
+            final List<dynamic> decodedList = json.decode(hourlyJson) as List<dynamic>;
+            hourlyForecast = decodedList
+                .map((item) => HourlyUVForecast.fromJson(item as Map<String, dynamic>))
+                .toList();
+          } catch (_) {}
+        }
+
         return HomeUVData(
           uvIndex: uv,
           peakTime: peakTime,
           sunburnText: sunburn,
           spfText: spf,
           lastUpdated: DateTime.tryParse(timestamp) ?? DateTime.now(),
+          hourlyForecast: hourlyForecast,
         );
       }
     } catch (_) {
@@ -82,6 +96,11 @@ class HomeStorageService {
       await prefs.setString(_keyUvSunburn, data.sunburnText);
       await prefs.setString(_keyUvSpf, data.spfText);
       await prefs.setString(_keyUvTimestamp, data.lastUpdated.toIso8601String());
+      
+      if (data.hourlyForecast != null) {
+        final hourlyJson = json.encode(data.hourlyForecast!.map((f) => f.toJson()).toList());
+        await prefs.setString(_keyUvHourly, hourlyJson);
+      }
     } catch (_) {
       // Menghindari kegagalan runtime jika penyimpanan gagal ditulis
     }

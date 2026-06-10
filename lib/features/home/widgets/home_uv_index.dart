@@ -7,6 +7,7 @@ import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
+import 'package:recommendation_app/features/home/widgets/home_uv_forecast.dart';
 import 'package:recommendation_app/features/home/widgets/home_uv_gauge.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 
@@ -106,6 +107,10 @@ class HomeUVIndex extends StatelessWidget {
                 ),
               ],
             ),
+            if (locationProvider.hourlyForecast.isNotEmpty) ...[
+              const _HorizontalDivider(),
+              HomeUVForecast(forecast: locationProvider.hourlyForecast),
+            ],
           ],
         ),
       ),
@@ -228,6 +233,29 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _HorizontalDivider extends StatelessWidget {
+  const _HorizontalDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            AppColors.lightBackground.withValues(alpha: 0.0),
+            AppColors.lightBackground.withValues(alpha: 0.12),
+            AppColors.lightBackground.withValues(alpha: 0.0),
+          ],
+        ),
+      ),
     );
   }
 }

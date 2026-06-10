@@ -221,4 +221,49 @@ class RecommendationProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Memuat daftar semua sunscreen aktif dari database secara independen
+  Future<void> fetchActiveSunscreens() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final suns = await _recommendationService.fetchActiveSunscreens();
+      _dbSunscreens = suns;
+    } catch (e) {
+      _errorMessage = 'Gagal memuat produk sunscreen.';
+      debugPrint('RecommendationProvider fetchActiveSunscreens error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Mengambil 1-3 produk sunscreen secara acak yang sesuai dengan indeks UV terkini
+  List<Map<String, dynamic>> getRandomSunscreensForUv(double uvIndex, {int count = 3}) {
+    if (_dbSunscreens.isEmpty) return [];
+
+    // Filter produk berdasarkan Indeks UV
+    // Jika UV Index tinggi (> 2.0), rekomendasikan sunscreen dengan SPF tinggi (>= 45)
+    // Jika UV Index rendah (<= 2.0), SPF >= 30 sudah cukup.
+    List<Map<String, dynamic>> filtered = _dbSunscreens.where((p) {
+      final spf = p['spf'] as int? ?? 30;
+      if (uvIndex > 2.0) {
+        return spf >= 45;
+      } else {
+        return spf >= 30;
+      }
+    }).toList();
+
+    // Fallback jika tidak ada yang cocok
+    if (filtered.isEmpty) {
+      filtered = [..._dbSunscreens];
+    }
+
+    // Mengacak daftar produk
+    final list = [...filtered]..shuffle();
+    return list.take(count).toList();
+  }
 }
+

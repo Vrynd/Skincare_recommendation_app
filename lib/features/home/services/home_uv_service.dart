@@ -65,6 +65,24 @@ class HomeUVService {
           }
         }
 
+        // 5. Ekstraksi ramalan indeks UV per jam untuk siang hari (06:00 - 18:00)
+        final List<HourlyUVForecast> forecastList = [];
+        for (int i = 0; i < times.length; i++) {
+          final timeStr = times[i].toString();
+          if (timeStr.startsWith(todayPrefix)) {
+            final timeObj = DateTime.parse(timeStr).toLocal();
+            final hour = timeObj.hour;
+            if (hour >= 6 && hour <= 18) {
+              forecastList.add(
+                HourlyUVForecast(
+                  time: timeObj,
+                  uvIndex: (uvIndexes[i] as num).toDouble(),
+                ),
+              );
+            }
+          }
+        }
+
         // 3. Menghitung Batas Sunburn (Kulit Terbakar) berdasarkan formula ilmiah WHO
         final sunburnMinutes = _calculateSunburnMinutes(currentUv);
         final sunburnText = currentUv < 0.5 ? 'Aman' : '$sunburnMinutes Menit';
@@ -77,6 +95,7 @@ class HomeUVService {
           peakTime: peakTime,
           sunburnText: sunburnText,
           spfText: spfText,
+          hourlyForecast: forecastList,
         );
       } else {
         debugPrint('Open-Meteo error status code: ${response.statusCode}');

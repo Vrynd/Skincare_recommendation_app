@@ -24,6 +24,7 @@ class HomeLocationProvider extends ChangeNotifier {
   String _uvDurationText = '2.5 Jam';
   String _spfText = '15+ SPF';
   bool _isUvLoading = false;
+  List<HourlyUVForecast> _hourlyForecast = [];
 
   // Getters Lokasi
   Position? get currentPosition => _currentPosition;
@@ -39,6 +40,7 @@ class HomeLocationProvider extends ChangeNotifier {
   String get spfText => _spfText;
   bool get isUvLoading => _isUvLoading;
   UVRiskLevel get uvRiskLevel => UVRiskLevel.fromIndex(_uvIndex);
+  List<HourlyUVForecast> get hourlyForecast => _hourlyForecast;
 
   /// Memulai pendeteksian lokasi GPS secara realtime dengan mekanisme Caching Stale-While-Revalidate (SWR)
   Future<void> fetchLocation() async {
@@ -69,6 +71,7 @@ class HomeLocationProvider extends ChangeNotifier {
         _peakTimeRange = cachedUv.peakTime;
         _uvDurationText = cachedUv.sunburnText;
         _spfText = cachedUv.spfText;
+        _hourlyForecast = cachedUv.hourlyForecast ?? [];
       }
 
       _isLoading = false;
@@ -156,6 +159,7 @@ class HomeLocationProvider extends ChangeNotifier {
           _peakTimeRange = uvData.peakTime;
           _uvDurationText = uvData.sunburnText;
           _spfText = uvData.spfText;
+          _hourlyForecast = uvData.hourlyForecast ?? [];
 
           // Simpan pembaruan data UV ke cache lokal SharedPreferences
           await _storageService.saveUVCache(uvData);
