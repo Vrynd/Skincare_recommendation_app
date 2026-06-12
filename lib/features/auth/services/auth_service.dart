@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:recommendation_app/features/auth/models/user_model.dart';
 
 class AuthService {
@@ -20,6 +21,45 @@ class AuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Web Client ID Google yang terdaftar di Google Cloud Console & Supabase Auth.
+  static const String _googleWebClientId = '485791371661-pqf04o71emmbq3jo936ovatmfsncpvpv.apps.googleusercontent.com';
+
+  /// Melakukan proses masuk menggunakan Google Sign-In
+  Future<UserModel?> signInWithGoogle() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      serverClientId: _googleWebClientId,
+    );
+    
+    // Memaksa Google untuk memunculkan dialog pilihan akun setiap kali tombol ditekan
+    try {
+      await googleSignIn.signOut();
+    } catch (_) {
+      // Abaikan jika tidak ada sesi aktif sebelumnya
+    }
+
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+    if (googleUser == null) return null; // Dibatalkan oleh pengguna
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final String? idToken = googleAuth.idToken;
+    final String? accessToken = googleAuth.accessToken;
+
+    if (idToken == null) {
+      throw const AuthException('Gagal memperoleh Google ID Token.');
+    }
+
+    final AuthResponse response = await _supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+
+    if (response.user == null) {
+      throw const AuthException('Gagal melakukan autentikasi dengan Supabase.');
+    }
+    return await fetchCurrentUserProfile();
   }
 
   /// Melakukan proses masuk (sign in) menggunakan kredensial Email dan Password

@@ -33,8 +33,8 @@ class AuthErrorBox extends StatelessWidget {
       return 'Kata sandi Anda terlalu lemah. Silakan gunakan kombinasi minimal 8 karakter.';
     }
 
-    // Default fallback yang ramah
-    return 'Terjadi kendala sistem saat memproses permintaan Anda. Silakan coba kembali beberapa saat lagi.';
+    // Default fallback yang ramah dengan detail kesalahan
+    return 'Terjadi kendala sistem saat memproses permintaan Anda. ($originalError)';
   }
 
   @override

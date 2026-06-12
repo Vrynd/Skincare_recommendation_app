@@ -10,6 +10,8 @@ import 'package:recommendation_app/features/auth/presentation/widgets/auth_remem
 import 'package:recommendation_app/features/auth/presentation/widgets/auth_social_button.dart';
 import 'package:recommendation_app/features/auth/presentation/widgets/auth_social_divider.dart';
 import 'package:recommendation_app/features/auth/presentation/widgets/auth_error_box.dart';
+import 'package:go_router/go_router.dart';
+import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 
 class LoginForm extends StatelessWidget with AuthValidator {
@@ -86,7 +88,13 @@ class LoginForm extends StatelessWidget with AuthValidator {
           ),
           AppSpacing.v32,
           AuthSocialButton(
-            onGoogleTap: () {},
+            onGoogleTap: () async {
+              final authProvider = context.read<AuthProvider>();
+              final success = await authProvider.signInWithGoogle();
+              if (success && context.mounted) {
+                context.goNamed(AppRouter.homeName);
+              }
+            },
             onAppleTap: () {},
           ),
         ],

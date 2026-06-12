@@ -41,7 +41,30 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Terjadi kesalahan sistem saat mencoba masuk.';
+      _errorMessage = 'Terjadi kesalahan sistem saat mencoba masuk: $e';
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Melakukan proses masuk menggunakan akun Google
+  Future<bool> signInWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (user != null) {
+        _currentUser = user;
+        return true;
+      }
+      return false;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (e) {
+      _errorMessage = 'Gagal masuk dengan Google: $e';
       return false;
     } finally {
       _setLoading(false);
@@ -68,7 +91,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = e.message;
       return false;
     } catch (e) {
-      _errorMessage = 'Terjadi kesalahan sistem saat mendaftar akun baru.';
+      _errorMessage = 'Terjadi kesalahan sistem saat mendaftar akun baru: $e';
       return false;
     } finally {
       _setLoading(false);
