@@ -30,7 +30,7 @@ class AppRouter {
       initialLocation: splashPath,
       refreshListenable: authProvider,
       redirect: (context, state) {
-        if (authProvider.isLoading) {
+        if (authProvider.isInitializing) {
           return splashPath;
         }
 

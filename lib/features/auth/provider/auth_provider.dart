@@ -8,19 +8,23 @@ class AuthProvider extends ChangeNotifier {
 
   UserModel? _currentUser;
   bool _isLoading = false;
+  bool _isInitializing = false;
   String? _errorMessage;
 
   // Getters
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isInitializing => _isInitializing;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
   /// Menginisialisasi status autentikasi saat aplikasi pertama kali dijalankan
   Future<void> initializeAuth() async {
-    _setLoading(true);
+    _isInitializing = true;
+    notifyListeners();
     _currentUser = await _authService.fetchCurrentUserProfile();
-    _setLoading(false);
+    _isInitializing = false;
+    notifyListeners();
   }
 
   /// Melakukan proses masuk (sign in) pengguna
