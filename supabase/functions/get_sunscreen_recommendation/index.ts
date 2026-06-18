@@ -214,9 +214,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Ranking & Top 5 Selection ---
+    // --- Ranking & Top 3 Selection ---
     qualifiedScoredProducts.sort((a, b) => b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
-    const topProducts = qualifiedScoredProducts.slice(0, 5);
+    const topProducts = qualifiedScoredProducts.slice(0, 3);
 
     if (topProducts.length === 0) {
       return new Response(JSON.stringify({ error: "Tidak ada produk yang cukup sesuai dengan kondisi kulit dan UV saat ini (Skor minimal 40)" }), {

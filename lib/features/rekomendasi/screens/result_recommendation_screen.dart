@@ -139,9 +139,15 @@ class _ResultRecommendationScreenState
             else ...[
               _buildSummary(context, provider.currentSessionDetails),
               AppSpacing.v32,
-              const AppTitleAction.none(title: 'Rekomandasi Produk'),
+              const AppTitleAction.none(title: 'Rekomendasi Utama'),
               AppSpacing.v12,
-              ...provider.currentSessionResults.map(productCard),
+              productCard(provider.currentSessionResults.first),
+              if (provider.currentSessionResults.length > 1) ...[
+                AppSpacing.v24,
+                const AppTitleAction.none(title: 'Rekomendasi Alternatif'),
+                AppSpacing.v12,
+                ...provider.currentSessionResults.skip(1).map(productCard),
+              ],
             ],
           ],
         ),
