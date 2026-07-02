@@ -95,9 +95,8 @@ class _CreateRecommendationScreenState
       allergyStatus: formProvider.mappedAllergyStatus,
       activity: formProvider.mappedActivity,
       texturePreference: formProvider.mappedTexture,
-      selectedConcernIds: formProvider.selectedSkinProblems
-          .map((p) => p.skinConcernId)
-          .toList(),
+      finishPreference: formProvider.mappedFinish,
+      selectedConcernIds: formProvider.selectedConcernIds,
       avoidedIngredientIds: const [],
       locationName: formProvider.locationName,
       latitude: formProvider.latitude,

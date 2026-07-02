@@ -25,16 +25,20 @@ export async function fetchSkinProfile(
     };
   }
 
-  const { data: skinConcernsData, error: skinConcernsError } = await adminClient
-    .from('skin_concerns')
-    .select('skin_concern_id, skin_concern_code, skin_concern_name')
-    .in('skin_concern_id', skinConcernIds);
+  let skinConcernsData: any[] = [];
+  if (skinConcernIds && skinConcernIds.length > 0) {
+    const { data: concernsData, error: skinConcernsError } = await adminClient
+      .from('skin_concerns')
+      .select('skin_concern_id, skin_concern_code, skin_concern_name')
+      .in('skin_concern_id', skinConcernIds);
 
-  if (skinConcernsError || !skinConcernsData || skinConcernsData.length === 0) {
-    return {
-      error: "Masalah kulit tidak ditemukan di database",
-      statusCode: 400
-    };
+    if (skinConcernsError || !concernsData) {
+      return {
+        error: "Gagal mengambil data masalah kulit dari database",
+        statusCode: 400
+      };
+    }
+    skinConcernsData = concernsData;
   }
 
   return { skinTypeData, skinConcernsData };
@@ -90,6 +94,19 @@ export async function fetchAllSkinTypesMap(adminClient: any): Promise<Map<string
   return skinTypeMap;
 }
 
+export async function fetchAllSkinConcernsMap(adminClient: any): Promise<Map<string, string>> {
+  const { data: allConcerns } = await adminClient
+    .from('skin_concerns')
+    .select('skin_concern_id, skin_concern_code');
+  const concernMap = new Map<string, string>();
+  if (allConcerns) {
+    for (const sc of allConcerns) {
+      concernMap.set(sc.skin_concern_id, sc.skin_concern_code);
+    }
+  }
+  return concernMap;
+}
+
 export interface TransactionResult {
   transactionRes?: any;
   error?: string;
@@ -103,6 +120,7 @@ export async function saveRecommendationTransaction(
     skinTypeId: string;
     activity: string;
     texturePreference?: string | null;
+    finishPreference?: string | null;
     allergyStatus: string;
     usageTimePreference: string;
     locationName?: string | null;
@@ -119,6 +137,7 @@ export async function saveRecommendationTransaction(
     p_skin_type_id: params.skinTypeId,
     p_activity: params.activity,
     p_texture_preference: params.texturePreference || null,
+    p_finish_preference: params.finishPreference || null,
     p_allergy_status: params.allergyStatus,
     p_usage_time_preference: params.usageTimePreference,
     p_location_name: params.locationName || null,

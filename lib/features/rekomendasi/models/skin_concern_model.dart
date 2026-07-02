@@ -38,23 +38,24 @@ class SkinConcernModel {
   static String getDisplay(String? name) {
     switch ((name ?? '').toLowerCase()) {
       case 'acne':
-        return 'Masalah Jerawat';
-      case 'blackhead':
-        return 'Komedo & Pori-pori';
-      case 'dark_spot':
-        return 'Flek Hitam';
-      case 'dull':
+      case 'jerawat':
+      case 'kulit berjerawat':
+        return 'Kulit Berjerawat';
+      case 'hyperpigmentation':
+      case 'hiperpigmentasi/noda hitam/kulit kusam':
+      case 'kulit kusam':
         return 'Kulit Kusam';
-      case 'irritation':
-        return 'Kemerahan & Iritasi';
-      case 'dehydration':
-        return 'Kulit Dehidrasi';
-      case 'wrinkle':
-        return 'Kerutan & Garis Halus';
-      case 'uneven_tone':
-        return 'Warna Kulit Tidak Merata';
       default:
         return name ?? '-';
     }
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SkinConcernModel && other.skinConcernId == skinConcernId;
+  }
+
+  @override
+  int get hashCode => skinConcernId.hashCode;
 }

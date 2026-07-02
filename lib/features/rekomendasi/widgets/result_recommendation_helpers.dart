@@ -32,6 +32,7 @@ Widget summaryTile(int i, String v) {
   final cfg = [
     (HugeIcons.strokeRoundedDroplet, AppColors.accentPurple, 'Jenis Kulit'),
     (HugeIcons.strokeRoundedAlert01, AppColors.accentOrange, 'Masalah Kulit'),
+    (HugeIcons.strokeRoundedSparkles, AppColors.accentTeal, 'Hasil Akhir'),
     (HugeIcons.strokeRoundedSun02, AppColors.accentAmber, 'Indeks UV'),
     (HugeIcons.strokeRoundedLocation01, AppColors.accentTeal, 'Lokasi'),
     (
@@ -46,7 +47,7 @@ Widget summaryTile(int i, String v) {
     title: cfg.$3,
     value: v,
     padding: const EdgeInsets.symmetric(horizontal: 16),
-    showDivider: i < 4,
+    showDivider: i < 5,
   );
 }
 

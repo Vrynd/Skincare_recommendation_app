@@ -51,4 +51,13 @@ class SkinTypeModel {
         return name ?? '-';
     }
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SkinTypeModel && other.skinTypeId == skinTypeId;
+  }
+
+  @override
+  int get hashCode => skinTypeId.hashCode;
 }

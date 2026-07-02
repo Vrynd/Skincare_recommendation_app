@@ -113,6 +113,14 @@ class _SessionSummarySheetState extends State<SessionSummarySheet> {
             ? SkinConcernModel.getDisplay(concerns.first)
             : '${SkinConcernModel.getDisplay(concerns.first)}, ...';
 
+    final rawFinish = session['finish_preference'] as String?;
+    final finishDisplay = const {
+      'matte': 'Matte',
+      'dewy': 'Dewy / Glowy',
+      'natural': 'Natural / Satin',
+      'tone_up': 'Tone-Up',
+    }[rawFinish?.toLowerCase()] ?? rawFinish ?? '-';
+
     final uvStr = uvDisplay(
       session['uv_index'],
       session['uv_risk_level'] as String?,
@@ -149,9 +157,10 @@ class _SessionSummarySheetState extends State<SessionSummarySheet> {
             children: [
               summaryTile(0, skinDisplay),
               summaryTile(1, concernDisplay),
-              summaryTile(2, uvStr),
-              summaryTile(3, locDisplay),
-              summaryTile(4, allergyStr),
+              summaryTile(2, finishDisplay),
+              summaryTile(3, uvStr),
+              summaryTile(4, locDisplay),
+              summaryTile(5, allergyStr),
             ],
           ),
         ),

@@ -14,21 +14,20 @@ export function validateRequestBody(body: any): ValidationResult {
     return { error: "skin_type_id wajib diisi dengan format UUID yang valid" };
   }
 
-  if (!body.skin_concern_ids || !Array.isArray(body.skin_concern_ids) || body.skin_concern_ids.length === 0) {
-    return { error: "Masalah kulit wajib dipilih (minimal 1)" };
-  }
-
-  if (body.skin_concern_ids.length > 4) {
-    return { error: "Maksimal masalah kulit yang dipilih adalah 4 kategori" };
-  }
-
-  if (hasDuplicate(body.skin_concern_ids)) {
-    return { error: "Masalah kulit tidak boleh duplikat" };
-  }
-
-  for (const id of body.skin_concern_ids) {
-    if (!isValidUuid(id)) {
-      return { error: "Format skin_concern_id tidak valid" };
+  if (body.skin_concern_ids) {
+    if (!Array.isArray(body.skin_concern_ids)) {
+      return { error: "Format skin_concern_ids harus berupa array" };
+    }
+    if (body.skin_concern_ids.length > 2) {
+      return { error: "Maksimal masalah kulit yang dipilih adalah 2 kategori" };
+    }
+    if (hasDuplicate(body.skin_concern_ids)) {
+      return { error: "Masalah kulit tidak boleh duplikat" };
+    }
+    for (const id of body.skin_concern_ids) {
+      if (!isValidUuid(id)) {
+        return { error: "Format skin_concern_id tidak valid" };
+      }
     }
   }
 
@@ -40,6 +39,11 @@ export function validateRequestBody(body: any): ValidationResult {
   const validTextures = ['gel', 'cream', 'lotion', 'serum', 'milk', 'watery', 'stick', 'spray', 'mist'];
   if (body.texture_preference && !validTextures.includes(body.texture_preference)) {
     return { error: "Nilai preferensi tekstur tidak valid" };
+  }
+
+  const validFinishes = ['matte', 'dewy', 'natural', 'tone_up'];
+  if (body.finish_preference && !validFinishes.includes(body.finish_preference)) {
+    return { error: "Nilai preferensi hasil akhir tidak valid" };
   }
 
   const validAllergyStatuses = ['none', 'unknown_ingredient', 'known_ingredient'];

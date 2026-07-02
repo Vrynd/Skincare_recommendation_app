@@ -9,9 +9,10 @@ import {
 import {
   isAllergyOrSafetyBlocked,
   calculateSkinTypeScore,
-  calculateAvgConcernScore,
+  calculateSkinConcernScore,
   calculateActivityScore,
   calculateTextureScore,
+  calculateFinishScore,
   calculatePenalty,
 } from "./scoring.ts";
 import {
@@ -24,6 +25,7 @@ import {
   fetchAutoAvoidIngredientIds,
   fetchActiveProducts,
   fetchAllSkinTypesMap,
+  fetchAllSkinConcernsMap,
   saveRecommendationTransaction,
 } from "./db_service.ts";
 
@@ -143,6 +145,7 @@ Deno.serve(async (req) => {
 
     // Map all skin types for ID-to-code lookup
     const skinTypeMap = await fetchAllSkinTypesMap(adminClient);
+    const skinConcernMap = await fetchAllSkinConcernsMap(adminClient);
 
     // --- Filter & Score Sunscreen Products ---
     const qualifiedScoredProducts = [];
@@ -158,7 +161,6 @@ Deno.serve(async (req) => {
       // ─────────────────────────────────────
       const isBlocked = isAllergyOrSafetyBlocked(
         userSkinCode,
-        userConcernCodes,
         body.allergy_status,
         body.avoided_ingredient_ids || [],
         productIngredientCodes,
@@ -185,17 +187,23 @@ Deno.serve(async (req) => {
       const maxSkinTypeScore = calculateSkinTypeScore(userSkinCode, productSkinCodes);
 
       // B. Skin Concern Score
-      const avgConcernScore = calculateAvgConcernScore(userConcernCodes, product, productIngredientCodes);
+      const productConcernCodes = product.product_skin_concerns
+        ?.map((psc: any) => skinConcernMap.get(psc.skin_concern_id))
+        .filter(Boolean) || [];
+      const skinConcernScore = calculateSkinConcernScore(userConcernCodes, productConcernCodes, product);
 
       // C. Activity Score
       const activityScore = calculateActivityScore(body.activity, product);
 
       // D. Texture Score
-      const textureScore = calculateTextureScore(body.texture_preference, product.texture);
+      const textureScore = calculateTextureScore(body.texture_preference, product.texture, userSkinCode);
 
-      const totalRaw = maxSkinTypeScore + avgConcernScore + activityScore + textureScore;
+      // E. Finish Score
+      const finishScore = calculateFinishScore(body.finish_preference, product.finish, userSkinCode);
 
-      // E. Penalty Calculation
+      const totalRaw = maxSkinTypeScore + skinConcernScore + activityScore + textureScore + finishScore;
+
+      // F. Penalty Calculation
       const penalty = calculatePenalty(userSkinCode, body.activity, product);
 
       const finalScore = Math.max(0, totalRaw - penalty);
@@ -204,9 +212,10 @@ Deno.serve(async (req) => {
         qualifiedScoredProducts.push({
           product,
           maxSkinTypeScore,
-          avgConcernScore,
+          skinConcernScore,
           activityScore,
           textureScore,
+          finishScore,
           totalRaw,
           penalty,
           finalScore
@@ -243,13 +252,14 @@ Deno.serve(async (req) => {
       skinTypeId: body.skin_type_id,
       activity: body.activity,
       texturePreference: body.texture_preference,
+      finishPreference: body.finish_preference || null,
       allergyStatus: body.allergy_status,
       usageTimePreference: usageTimePref,
       locationName: body.location_name,
       latitude: lat,
       longitude: lon,
       uvIndex: uvIndex,
-      skinConcernIds: body.skin_concern_ids,
+      skinConcernIds: body.skin_concern_ids || [],
       avoidedIngredientIds: body.avoided_ingredient_ids || [],
       rankedProducts: ranked
     });
