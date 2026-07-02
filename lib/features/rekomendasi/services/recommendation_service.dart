@@ -72,26 +72,42 @@ class RecommendationService {
     String? uvRiskLevel,
   }) async {
     try {
+      final requestBody = {
+        'user_id': userId,
+        'skin_type_id': skinTypeId,
+        'skin_concern_ids': selectedConcernIds,
+        'activity': activity,
+        'texture_preference': texturePreference,
+        'finish_preference': finishPreference,
+        'allergy_status': allergyStatus,
+        'avoided_ingredient_ids': avoidedIngredientIds,
+        'location_name': locationName,
+        'latitude': latitude ?? -6.2,
+        'longitude': longitude ?? 106.816,
+        'usage_time_preference': usageTime,
+      };
+
+      // ── DEBUG LOG: Cetak payload yang dikirim ke edge function ──
+      debugPrint('═══════════════════════════════════════════');
+      debugPrint('[RecommendationService] REQUEST PAYLOAD:');
+      requestBody.forEach((k, v) => debugPrint('  $k: $v'));
+      debugPrint('═══════════════════════════════════════════');
+
       final response = await _supabase.functions.invoke(
         'get_sunscreen_recommendation',
-        body: {
-          'user_id': userId,
-          'skin_type_id': skinTypeId,
-          'skin_concern_ids': selectedConcernIds,
-          'activity': activity,
-          'texture_preference': texturePreference,
-          'finish_preference': finishPreference,
-          'allergy_status': allergyStatus,
-          'avoided_ingredient_ids': avoidedIngredientIds,
-          'location_name': locationName,
-          'latitude': latitude ?? 0.0,
-          'longitude': longitude ?? 0.0,
-          'usage_time_preference': usageTime,
-        },
+        body: requestBody,
       );
 
+      // ── DEBUG LOG: Cetak response dari edge function ──
+      debugPrint('[RecommendationService] RESPONSE STATUS: ${response.status}');
+      debugPrint('[RecommendationService] RESPONSE DATA: ${response.data}');
+      debugPrint('═══════════════════════════════════════════');
+
       if (response.status != 200) {
-        throw Exception(response.data['error'] ?? 'Gagal membuat rekomendasi');
+        final errMsg = response.data is Map
+            ? (response.data['error'] ?? response.data.toString())
+            : response.data.toString();
+        throw Exception('HTTP ${response.status}: $errMsg');
       }
 
       final String sessionId = response.data['recommendation_session_id'] as String;

@@ -84,9 +84,19 @@ class _CreateRecommendationScreenState
       return;
     }
 
-    final skinType = formProvider.selectedSkinType!;
     final locationProvider = context.read<HomeLocationProvider>();
+
+    // Guard: jika GPS sedang dimuat, tunda submit
+    if (locationProvider.isLoading) {
+      AppSnackBar.showError(
+        context,
+        'Menunggu data lokasi GPS... Coba lagi sebentar.',
+      );
+      return;
+    }
+
     formProvider.updateLocationAndUv(locationProvider);
+    final skinType = formProvider.selectedSkinType!;
 
     final sessionId = await provider.submitRecommendation(
       userId: userId,
