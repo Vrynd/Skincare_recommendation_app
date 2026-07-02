@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_divider.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
+import 'package:recommendation_app/core/widgets/app_bottom_sheet.dart';
 
 class ProductRecommendationCard extends StatefulWidget {
   final String brandName;
@@ -14,6 +16,12 @@ class ProductRecommendationCard extends StatefulWidget {
   final String usageTime;
   final double matchScore;
   final String recommendationCategory;
+  final double? skinTypeScore;
+  final double? activityScore;
+  final double? skinConcernScore;
+  final double? textureScore;
+  final double? finishScore;
+  final double? penalty;
 
   const ProductRecommendationCard({
     super.key,
@@ -24,6 +32,12 @@ class ProductRecommendationCard extends StatefulWidget {
     required this.usageTime,
     required this.matchScore,
     required this.recommendationCategory,
+    this.skinTypeScore,
+    this.activityScore,
+    this.skinConcernScore,
+    this.textureScore,
+    this.finishScore,
+    this.penalty,
   });
 
   @override
@@ -32,8 +46,6 @@ class ProductRecommendationCard extends StatefulWidget {
 }
 
 class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
-  bool _isExpanded = false;
-
   Color _getBrandColor(String brand) {
     const accents = [
       AppColors.accentPurple,
@@ -110,17 +122,394 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     };
   }
 
+  void _showBreakdownSheet(BuildContext context) {
+    final brandColor = _getBrandColor(widget.brandName);
+
+    final skinType = widget.skinTypeScore ?? 25.0;
+    final activity = widget.activityScore ?? 25.0;
+    final concern = widget.skinConcernScore ?? 20.0;
+    final texture = widget.textureScore ?? 15.0;
+    final finish = widget.finishScore ?? 15.0;
+    final penaltyVal = widget.penalty ?? 0.0;
+    final finalScore = widget.matchScore;
+
+    // Hitung kontribusi setiap kriteria dari total skor akhir (%)
+    // contoh: total=80, skinType=20 → kontribusi = (20/80)*100 = 25%
+    double contrib(double score) =>
+        finalScore > 0 ? (score / finalScore) * 100 : 0;
+
+    final criteria = [
+      (
+        icon: HugeIcons.strokeRoundedDroplet,
+        color: AppColors.accentPurple,
+        label: 'Tipe Kulit',
+        score: skinType,
+        pct: contrib(skinType),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedActivity01,
+        color: AppColors.accentBlue,
+        label: 'Aktivitas Harian',
+        score: activity,
+        pct: contrib(activity),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedAlert01,
+        color: AppColors.accentOrange,
+        label: 'Masalah Kulit',
+        score: concern,
+        pct: contrib(concern),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedSparkles,
+        color: AppColors.accentTeal,
+        label: 'Tekstur',
+        score: texture,
+        pct: contrib(texture),
+      ),
+      (
+        icon: HugeIcons.strokeRoundedCircle,
+        color: AppColors.accentPink,
+        label: 'Hasil Akhir',
+        score: finish,
+        pct: contrib(finish),
+      ),
+    ];
+
+    AppBottomSheet.show(
+      context: context,
+      showHandle: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Header ─────────────────────────────────────
+          Text(
+            widget.brandName.toUpperCase(),
+            style: context.text.labelSmall?.copyWith(
+              color: brandColor,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          AppSpacing.v4,
+          Text(
+            widget.productName,
+            style: context.text.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: context.colors.onSurface,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          AppSpacing.v20,
+
+          // ── Total Skor Card ─────────────────────────────
+          AppContainer(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            borderRadius: AppRadius.br24,
+            color: brandColor,
+            opacity: 0.08,
+            showBorder: false,
+            showShadow: false,
+            child: Row(
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: CircularProgressIndicator(
+                        value: finalScore / 100,
+                        strokeWidth: 9,
+                        strokeCap: StrokeCap.round,
+                        backgroundColor:
+                            context.colors.outline.withValues(alpha: 0.12),
+                        valueColor: AlwaysStoppedAnimation<Color>(brandColor),
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${finalScore.toInt()}',
+                          style: context.text.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: brandColor,
+                            height: 1,
+                          ),
+                        ),
+                        Text(
+                          '%',
+                          style: context.text.labelSmall?.copyWith(
+                            color: brandColor.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                AppSpacing.h20,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Kesesuaian',
+                        style: context.text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.onSurface,
+                        ),
+                      ),
+                      AppSpacing.v4,
+                      Text(
+                        'Rincian di bawah menunjukkan berapa persen setiap kriteria berkontribusi pada skor ${finalScore.toInt()}% ini.',
+                        style: context.text.bodySmall?.copyWith(
+                          color: context.colors.outline,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.v20,
+
+          // ── Mini stacked bar (visual ikhtisar) ─────────
+          ClipRRect(
+            borderRadius: AppRadius.br8,
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  for (final c in criteria)
+                    Flexible(
+                      flex: (c.pct * 10).toInt().clamp(1, 1000),
+                      child: Container(color: c.color),
+                    ),
+                  if (penaltyVal > 0)
+                    Flexible(
+                      flex: ((penaltyVal / finalScore) * 100 * 10)
+                          .toInt()
+                          .clamp(1, 1000),
+                      child: Container(
+                          color: AppColors.accentRed.withValues(alpha: 0.5)),
+                    ),
+                  Flexible(
+                    flex: ((100 - finalScore) * 10).toInt().clamp(1, 1000),
+                    child: Container(
+                        color: context.colors.outline.withValues(alpha: 0.08)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AppSpacing.v20,
+
+          // ── Label Seksi ─────────────────────────────────
+          Text(
+            'KONTRIBUSI PER KRITERIA',
+            style: context.text.labelSmall?.copyWith(
+              color: context.colors.outline,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+          AppSpacing.v12,
+
+          // ── Daftar Kriteria ──────────────────────────────
+          for (int i = 0; i < criteria.length; i++) ...[
+            _buildBreakdownItem(
+              context: context,
+              icon: criteria[i].icon,
+              iconColor: criteria[i].color,
+              title: criteria[i].label,
+              rawScore: criteria[i].score,
+              contributionPct: criteria[i].pct,
+              totalScore: finalScore,
+            ),
+            if (i < criteria.length - 1)
+              const AppDivider.dashed(
+                  indent: 0, endIndent: 0, thickness: 0.6),
+          ],
+
+          // ── Penalti ──────────────────────────────────────
+          if (penaltyVal > 0) ...[
+            const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 0.6),
+            _buildBreakdownItem(
+              context: context,
+              icon: HugeIcons.strokeRoundedAlertCircle,
+              iconColor: AppColors.accentRed,
+              title: 'Pengurangan / Penalti',
+              rawScore: -penaltyVal,
+              contributionPct: (penaltyVal / finalScore) * 100,
+              totalScore: finalScore,
+              isPenalty: true,
+            ),
+          ],
+
+          AppSpacing.v16,
+          const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 0.8),
+          AppSpacing.v12,
+
+          // ── Info Tambahan ────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Waktu Penggunaan',
+                style: context.text.labelLarge?.copyWith(
+                    color: context.colors.outline),
+              ),
+              Text(
+                _formatUsageTime(widget.usageTime),
+                style: context.text.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.onSurface),
+              ),
+            ],
+          ),
+          AppSpacing.v8,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Nomor BPOM',
+                style: context.text.labelLarge?.copyWith(
+                    color: context.colors.outline),
+              ),
+              Text(
+                widget.bpomNumber,
+                style: context.text.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.onSurface),
+              ),
+            ],
+          ),
+          AppSpacing.v24,
+
+          // ── Tutup ────────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    context.colors.primary.withValues(alpha: 0.08),
+                shape: RoundedRectangleBorder(
+                    borderRadius: AppRadius.br16),
+              ),
+              child: Text(
+                'Tutup Detail',
+                style: context.text.labelLarge?.copyWith(
+                    color: context.colors.primary,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdownItem({
+    required BuildContext context,
+    required dynamic icon,
+    required Color iconColor,
+    required String title,
+    required double rawScore,
+    required double contributionPct,
+    required double totalScore,
+    bool isPenalty = false,
+  }) {
+    // Persentase kontribusi dari total akhir (mis. 20/80 * 100 = 25%)
+    final displayPct = contributionPct.abs();
+    // Bar fill: seberapa penuh bar relatif terhadap max kemungkinan kriteria ini
+    // Tampilkan bar berdasarkan pct kontribusi dari 100% total
+    final barFill = (displayPct / 100).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          // Icon bulat
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: HugeIcon(icon: icon, color: iconColor, size: 18),
+          ),
+          AppSpacing.h12,
+          // Label + bar
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: context.text.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.onSurface,
+                      ),
+                    ),
+                    Text(
+                      isPenalty
+                          ? '-${displayPct.toStringAsFixed(1)}%'
+                          : '${displayPct.toStringAsFixed(1)}%',
+                      style: context.text.labelMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isPenalty
+                            ? AppColors.accentRed
+                            : iconColor,
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.v4,
+                ClipRRect(
+                  borderRadius: AppRadius.br8,
+                  child: LinearProgressIndicator(
+                    value: barFill,
+                    minHeight: 5,
+                    backgroundColor:
+                        context.colors.outline.withValues(alpha: 0.08),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(
+                            isPenalty
+                                ? AppColors.accentRed.withValues(alpha: 0.6)
+                                : iconColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final brandColor = _getBrandColor(widget.brandName);
-    final friendlyUsageTime = _formatUsageTime(widget.usageTime);
 
     return AppContainer(
       padding: EdgeInsets.zero,
       borderRadius: AppRadius.br24,
       showShadow: false,
       child: InkWell(
-        onTap: () => setState(() => _isExpanded = !_isExpanded),
+        onTap: () => _showBreakdownSheet(context),
         borderRadius: AppRadius.br24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,56 +619,6 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                 ],
               ),
             ),
-
-            // ── Expanded: waktu penggunaan + nomor BPOM ──────────────────
-            if (_isExpanded) ...[
-              // Divider expanded juga edge-to-edge
-              const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 1),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Waktu Penggunaan',
-                          style: context.text.labelLarge?.copyWith(
-                            color: context.colors.outline,
-                          ),
-                        ),
-                        Text(
-                          friendlyUsageTime,
-                          style: context.text.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: context.colors.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSpacing.v8,
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Nomor BPOM',
-                          style: context.text.labelLarge?.copyWith(
-                            color: context.colors.outline,
-                          ),
-                        ),
-                        Text(
-                          widget.bpomNumber,
-                          style: context.text.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: context.colors.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),

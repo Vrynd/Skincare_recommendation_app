@@ -298,7 +298,13 @@ Deno.serve(async (req) => {
         texture: item.product.texture,
         finish: item.product.finish,
         match_score: item.finalScore,
-        recommendation_category: item.category
+        recommendation_category: item.category,
+        skin_type_score: item.maxSkinTypeScore,
+        activity_score: item.activityScore,
+        skin_concern_score: item.skinConcernScore,
+        texture_score: item.textureScore,
+        finish_score: item.finishScore,
+        penalty: item.penalty
       }))
     };
 

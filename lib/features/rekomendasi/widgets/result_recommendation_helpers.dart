@@ -82,6 +82,12 @@ Widget productCard(Map<String, dynamic> item) {
       usageTime: p['usage_time'] as String? ?? '-',
       matchScore: (item['match_score'] as num?)?.toDouble() ?? 0,
       recommendationCategory: item['recommendation_category'] as String? ?? '',
+      skinTypeScore: (item['skin_type_score'] as num?)?.toDouble(),
+      activityScore: (item['activity_score'] as num?)?.toDouble(),
+      skinConcernScore: (item['skin_concern_score'] as num?)?.toDouble(),
+      textureScore: (item['texture_score'] as num?)?.toDouble(),
+      finishScore: (item['finish_score'] as num?)?.toDouble(),
+      penalty: (item['penalty'] as num?)?.toDouble(),
     ),
   );
 }

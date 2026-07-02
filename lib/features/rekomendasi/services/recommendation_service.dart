@@ -276,6 +276,12 @@ class RecommendationService {
             match_score,
             recommendation_category,
             rank_position,
+            skin_type_score,
+            activity_score,
+            skin_concern_score,
+            texture_score,
+            finish_score,
+            penalty,
             products (
               product_id,
               brand_name,

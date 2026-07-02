@@ -150,7 +150,13 @@ export async function saveRecommendationTransaction(
       product_id: item.product.product_id,
       match_score: item.finalScore,
       recommendation_category: item.category,
-      rank_position: item.rank_position
+      rank_position: item.rank_position,
+      skin_type_score: item.maxSkinTypeScore,
+      activity_score: item.activityScore,
+      skin_concern_score: item.skinConcernScore,
+      texture_score: item.textureScore,
+      finish_score: item.finishScore,
+      penalty: item.penalty
     }))
   });
 
