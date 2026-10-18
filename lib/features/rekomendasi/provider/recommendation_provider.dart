@@ -3,6 +3,7 @@ import 'package:recommendation_app/features/rekomendasi/models/recommendation_mo
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/recommendation_result_model.dart';
 import 'package:recommendation_app/features/rekomendasi/services/recommendation_service.dart';
 
 /// Provider yang mengelola status state untuk formulir dan riwayat rekomendasi skincare.
@@ -24,9 +25,14 @@ class RecommendationProvider extends ChangeNotifier {
   };
   List<RecommendationModel> _recommendations = [];
 
-  // State Hasil Rekomendasi Sesi Terkini
+  // State Hasil Rekomendasi Sesi Terkini (Dual-Mode)
   Map<String, dynamic>? _currentSessionDetails;
   List<Map<String, dynamic>> _currentSessionResults = [];
+  RecommendationDualModeResponse? _latestResponse;
+  List<SunscreenRecommendationItem> _routineResults = [];
+  List<SunscreenRecommendationItem> _todayResults = [];
+  UvDataModel? _uvData;
+  int _selectedModeIndex = 0; // 0 = Rekomendasi Rutin, 1 = Proteksi Hari Ini
 
   // State Sunscreen Aktif dari DB untuk kalkulasi UV protection
   List<Map<String, dynamic>> _dbSunscreens = [];
@@ -48,10 +54,34 @@ class RecommendationProvider extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
 
-  // Getters Hasil Rekomendasi Sesi Terkini
+  // Getters Hasil Rekomendasi Sesi Terkini (Dual-Mode)
   Map<String, dynamic>? get currentSessionDetails => _currentSessionDetails;
   List<Map<String, dynamic>> get currentSessionResults => _currentSessionResults;
+  RecommendationDualModeResponse? get latestResponse => _latestResponse;
+  List<SunscreenRecommendationItem> get routineResults => _routineResults;
+  List<SunscreenRecommendationItem> get todayResults => _todayResults;
+  List<SunscreenRecommendationItem> get activeModeResults =>
+      _selectedModeIndex == 0 ? _routineResults : _todayResults;
+  int get selectedModeIndex => _selectedModeIndex;
+  UvDataModel? get uvData => _uvData;
+  bool get isRoutineMode => _selectedModeIndex == 0;
   List<Map<String, dynamic>> get dbSunscreens => _dbSunscreens;
+
+  /// Mengubah mode aktif antara Rekomendasi Rutin (0) dan Proteksi Hari Ini (1)
+  void setSelectedModeIndex(int index) {
+    if (_selectedModeIndex != index) {
+      _selectedModeIndex = index;
+      _updateCurrentSessionResults();
+      notifyListeners();
+    }
+  }
+
+  void _updateCurrentSessionResults() {
+    final activeList = _selectedModeIndex == 0 ? _routineResults : _todayResults;
+    if (activeList.isNotEmpty) {
+      _currentSessionResults = activeList.map((e) => e.toMap()).toList();
+    }
+  }
 
   /// Memuat semua data master opsi formulir (dengan caching RAM)
   Future<void> loadFormOptions({bool force = false}) async {
@@ -108,7 +138,7 @@ class RecommendationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final sessionId = await _recommendationService.submitRecommendations(
+      final response = await _recommendationService.submitRecommendations(
         userId: userId,
         skinTypeId: skinTypeId,
         usageTime: usageTime,
@@ -125,10 +155,16 @@ class RecommendationProvider extends ChangeNotifier {
         uvRiskLevel: uvRiskLevel,
       );
 
+      _latestResponse = response;
+      _routineResults = response.routineResults;
+      _todayResults = response.todayResults;
+      _uvData = response.uvData;
+      _updateCurrentSessionResults();
+
       // Perbarui riwayat rekomendasi dan jumlah kategori di background
       await fetchCategoryCounts(userId);
 
-      return sessionId;
+      return response.sessionId;
     } catch (e) {
       _errorMessage = 'Gagal mengirim formulir rekomendasi Anda.';
       debugPrint('RecommendationProvider submitRecommendation error: $e');
@@ -187,7 +223,6 @@ class RecommendationProvider extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     _currentSessionDetails = null;
-    _currentSessionResults = [];
     notifyListeners();
 
     try {
@@ -197,7 +232,21 @@ class RecommendationProvider extends ChangeNotifier {
       ]);
 
       _currentSessionDetails = results[0] as Map<String, dynamic>?;
-      _currentSessionResults = results[1] as List<Map<String, dynamic>>;
+
+      // Jika sesi saat ini cocok dengan respons edge function terbaru yang memuat dual-mode lengkap
+      if (_latestResponse != null && _latestResponse!.sessionId == sessionId) {
+        _routineResults = _latestResponse!.routineResults;
+        _todayResults = _latestResponse!.todayResults;
+        _uvData = _latestResponse!.uvData;
+      } else {
+        // Fallback untuk riwayat yang dimuat dari database
+        final dbList = results[1] as List<Map<String, dynamic>>;
+        final items = dbList.map((m) => SunscreenRecommendationItem.fromJson(m)).toList();
+        _routineResults = items;
+        _todayResults = items;
+      }
+
+      _updateCurrentSessionResults();
     } catch (e) {
       _errorMessage = 'Gagal memuat hasil rekomendasi.';
       debugPrint('RecommendationProvider loadSessionResults error: $e');

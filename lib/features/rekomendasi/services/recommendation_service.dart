@@ -4,6 +4,7 @@ import 'package:recommendation_app/features/rekomendasi/models/recommendation_mo
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/ingredient_model.dart';
+import 'package:recommendation_app/features/rekomendasi/models/recommendation_result_model.dart';
 
 /// Service yang mengelola komunikasi data rekomendasi skincare dengan Supabase.
 class RecommendationService {
@@ -54,8 +55,8 @@ class RecommendationService {
     }
   }
 
-  /// Menyimpan formulir rekomendasi baru beserta data
-  Future<String> submitRecommendations({
+  /// Menyimpan formulir rekomendasi baru beserta data dan menghasilkan respon dual-mode
+  Future<RecommendationDualModeResponse> submitRecommendations({
     required String userId,
     required String skinTypeId,
     required String usageTime,
@@ -110,8 +111,9 @@ class RecommendationService {
         throw Exception('HTTP ${response.status}: $errMsg');
       }
 
-      final String sessionId = response.data['recommendation_session_id'] as String;
-      return sessionId;
+      final Map<String, dynamic> responseData =
+          Map<String, dynamic>.from(response.data as Map);
+      return RecommendationDualModeResponse.fromJson(responseData);
     } catch (e) {
       debugPrint('RecommendationService submitRecommendations error: $e');
       rethrow;

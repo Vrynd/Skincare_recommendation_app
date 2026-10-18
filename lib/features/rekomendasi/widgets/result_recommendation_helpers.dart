@@ -72,22 +72,48 @@ Widget ingredientChip(BuildContext context, String name) {
 
 Widget productCard(Map<String, dynamic> item) {
   final p = item['products'] as Map<String, dynamic>? ?? {};
+
+  Map<String, double>? parseContributions(dynamic c) {
+    if (c is Map) {
+      final map = <String, double>{};
+      c.forEach((k, v) {
+        if (v is num) map[k.toString()] = v.toDouble();
+      });
+      return map;
+    }
+    return null;
+  }
+
   return Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: ProductRecommendationCard(
-      brandName: p['brand_name'] as String? ?? '-',
-      productName: p['product_name'] as String? ?? '-',
-      bpomNumber: p['bpom_number'] as String? ?? '-',
-      category: p['category'] as String? ?? '-',
-      usageTime: p['usage_time'] as String? ?? '-',
-      matchScore: (item['match_score'] as num?)?.toDouble() ?? 0,
-      recommendationCategory: item['recommendation_category'] as String? ?? '',
+      brandName: (item['brand_name'] ?? p['brand_name'] ?? '-').toString(),
+      productName: (item['product_name'] ?? p['product_name'] ?? '-').toString(),
+      bpomNumber: (item['bpom_number'] ?? p['bpom_number'] ?? '-').toString(),
+      category: (item['category'] ?? p['category'] ?? 'sunscreen').toString(),
+      usageTime: (item['usage_time'] ?? p['usage_time'] ?? '-').toString(),
+      matchScore: (item['match_score'] as num?)?.toDouble() ?? 0.0,
+      recommendationCategory:
+          (item['recommendation_category'] ?? '').toString(),
+      uvScore: (item['uv_score'] as num?)?.toDouble(),
       skinTypeScore: (item['skin_type_score'] as num?)?.toDouble(),
       activityScore: (item['activity_score'] as num?)?.toDouble(),
       skinConcernScore: (item['skin_concern_score'] as num?)?.toDouble(),
       textureScore: (item['texture_score'] as num?)?.toDouble(),
       finishScore: (item['finish_score'] as num?)?.toDouble(),
-      penalty: (item['penalty'] as num?)?.toDouble(),
+      sUv: (item['s_uv'] as num?)?.toDouble(),
+      sSkin: (item['s_skin'] as num?)?.toDouble(),
+      sActivity: (item['s_activity'] as num?)?.toDouble(),
+      sConcern: (item['s_concern'] as num?)?.toDouble(),
+      sTexture: (item['s_texture'] as num?)?.toDouble(),
+      sFinish: (item['s_finish'] as num?)?.toDouble(),
+      contributions: parseContributions(item['contributions']),
+      spf: (item['spf'] ?? p['spf'] as num?)?.toInt(),
+      paGrade: (item['pa_grade'] ?? p['pa_grade'])?.toString(),
+      sunscreenType: (item['sunscreen_type'] ?? p['sunscreen_type'])?.toString(),
+      texture: (item['texture'] ?? p['texture'])?.toString(),
+      finish: (item['finish'] ?? p['finish'])?.toString(),
+      penalty: (item['penalty'] as num?)?.toDouble() ?? 0.0,
     ),
   );
 }

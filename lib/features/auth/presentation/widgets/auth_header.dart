@@ -13,10 +13,10 @@ class AuthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      flex: 1,
+    return SafeArea(
+      bottom: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 48, 20, 0),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -32,8 +32,8 @@ class AuthHeader extends StatelessWidget {
                   },
                   child: AppContainer(
                     shape: BoxShape.circle,
-                    width: 48,
-                    height: 48,
+                    width: 44,
+                    height: 44,
                     opacity: 0.8,
                     padding: EdgeInsets.zero,
                     showShadow: false,
@@ -48,7 +48,7 @@ class AuthHeader extends StatelessWidget {
                 ),
               ],
             ),
-            AppSpacing.v32,
+            AppSpacing.v20,
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,

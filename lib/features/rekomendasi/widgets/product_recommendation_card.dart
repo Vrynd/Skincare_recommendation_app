@@ -16,11 +16,24 @@ class ProductRecommendationCard extends StatefulWidget {
   final String usageTime;
   final double matchScore;
   final String recommendationCategory;
+  final double? uvScore;
   final double? skinTypeScore;
   final double? activityScore;
   final double? skinConcernScore;
   final double? textureScore;
   final double? finishScore;
+  final double? sUv;
+  final double? sSkin;
+  final double? sActivity;
+  final double? sConcern;
+  final double? sTexture;
+  final double? sFinish;
+  final Map<String, double>? contributions;
+  final int? spf;
+  final String? paGrade;
+  final String? sunscreenType;
+  final String? texture;
+  final String? finish;
   final double? penalty;
 
   const ProductRecommendationCard({
@@ -32,11 +45,24 @@ class ProductRecommendationCard extends StatefulWidget {
     required this.usageTime,
     required this.matchScore,
     required this.recommendationCategory,
+    this.uvScore,
     this.skinTypeScore,
     this.activityScore,
     this.skinConcernScore,
     this.textureScore,
     this.finishScore,
+    this.sUv,
+    this.sSkin,
+    this.sActivity,
+    this.sConcern,
+    this.sTexture,
+    this.sFinish,
+    this.contributions,
+    this.spf,
+    this.paGrade,
+    this.sunscreenType,
+    this.texture,
+    this.finish,
     this.penalty,
   });
 
@@ -125,54 +151,83 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
   void _showBreakdownSheet(BuildContext context) {
     final brandColor = _getBrandColor(widget.brandName);
 
-    final skinType = widget.skinTypeScore ?? 25.0;
-    final activity = widget.activityScore ?? 25.0;
-    final concern = widget.skinConcernScore ?? 20.0;
-    final texture = widget.textureScore ?? 15.0;
-    final finish = widget.finishScore ?? 15.0;
-    final penaltyVal = widget.penalty ?? 0.0;
+    final uv = widget.uvScore ?? (widget.sUv != null ? widget.sUv! * 25.0 : 25.0);
+    final skinType = widget.skinTypeScore ?? (widget.sSkin != null ? widget.sSkin! * 25.0 : 25.0);
+    final activity = widget.activityScore ?? (widget.sActivity != null ? widget.sActivity! * 20.0 : 20.0);
+    final concern = widget.skinConcernScore ?? (widget.sConcern != null ? widget.sConcern! * 10.0 : 10.0);
+    final texture = widget.textureScore ?? (widget.sTexture != null ? widget.sTexture! * 10.0 : 10.0);
+    final finish = widget.finishScore ?? (widget.sFinish != null ? widget.sFinish! * 10.0 : 10.0);
     final finalScore = widget.matchScore;
+    final contribs = widget.contributions;
 
-    // Hitung kontribusi setiap kriteria dari total skor akhir (%)
-    // contoh: total=80, skinType=20 → kontribusi = (20/80)*100 = 25%
-    double contrib(double score) =>
-        finalScore > 0 ? (score / finalScore) * 100 : 0;
+    // Hitung persentase kontribusi relatif K_ij (Persamaan 2)
+    double getContrib(String key, double score) {
+      if (contribs != null && contribs.containsKey(key)) {
+        return contribs[key]!;
+      }
+      return finalScore > 0 ? (score / finalScore) * 100 : 0.0;
+    }
 
     final criteria = [
       (
-        icon: HugeIcons.strokeRoundedDroplet,
-        color: AppColors.accentPurple,
-        label: 'Tipe Kulit',
-        score: skinType,
-        pct: contrib(skinType),
+        code: 'C1',
+        icon: HugeIcons.strokeRoundedSun02,
+        color: AppColors.accentAmber,
+        label: 'Proteksi UV',
+        weight: '25%',
+        score: uv,
+        pct: getContrib('uv', uv),
+        matchDegree: widget.sUv,
       ),
       (
+        code: 'C2',
+        icon: HugeIcons.strokeRoundedDroplet,
+        color: AppColors.accentPurple,
+        label: 'Jenis Kulit',
+        weight: '25%',
+        score: skinType,
+        pct: getContrib('skinType', skinType),
+        matchDegree: widget.sSkin,
+      ),
+      (
+        code: 'C3',
         icon: HugeIcons.strokeRoundedActivity01,
         color: AppColors.accentBlue,
         label: 'Aktivitas Harian',
+        weight: '20%',
         score: activity,
-        pct: contrib(activity),
+        pct: getContrib('activity', activity),
+        matchDegree: widget.sActivity,
       ),
       (
+        code: 'C4',
         icon: HugeIcons.strokeRoundedAlert01,
         color: AppColors.accentOrange,
         label: 'Masalah Kulit',
+        weight: '10%',
         score: concern,
-        pct: contrib(concern),
+        pct: getContrib('skinConcern', concern),
+        matchDegree: widget.sConcern,
       ),
       (
+        code: 'C5',
         icon: HugeIcons.strokeRoundedSparkles,
         color: AppColors.accentTeal,
-        label: 'Tekstur',
+        label: 'Preferensi Tekstur',
+        weight: '10%',
         score: texture,
-        pct: contrib(texture),
+        pct: getContrib('texture', texture),
+        matchDegree: widget.sTexture,
       ),
       (
+        code: 'C6',
         icon: HugeIcons.strokeRoundedCircle,
         color: AppColors.accentPink,
         label: 'Hasil Akhir',
+        weight: '10%',
         score: finish,
-        pct: contrib(finish),
+        pct: getContrib('finish', finish),
+        matchDegree: widget.sFinish,
       ),
     ];
 
@@ -221,7 +276,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       width: 80,
                       height: 80,
                       child: CircularProgressIndicator(
-                        value: finalScore / 100,
+                        value: (finalScore / 100).clamp(0.0, 1.0),
                         strokeWidth: 9,
                         strokeCap: StrokeCap.round,
                         backgroundColor:
@@ -241,9 +296,9 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                           ),
                         ),
                         Text(
-                          '%',
+                          'Poin',
                           style: context.text.labelSmall?.copyWith(
-                            color: brandColor.withValues(alpha: 0.7),
+                            color: brandColor.withValues(alpha: 0.8),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -257,7 +312,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total Kesesuaian',
+                        'Total Kesesuaian Terbobot',
                         style: context.text.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: context.colors.onSurface,
@@ -265,7 +320,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       ),
                       AppSpacing.v4,
                       Text(
-                        'Rincian di bawah menunjukkan berapa persen setiap kriteria berkontribusi pada skor ${finalScore.toInt()}% ini.',
+                        'Rincian evaluasi 6 kriteria berbasis aturan (Rule-Based Scoring). Akumulasi kontribusi kriteria tepat 100%.',
                         style: context.text.bodySmall?.copyWith(
                           color: context.colors.outline,
                           height: 1.4,
@@ -279,7 +334,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           ),
           AppSpacing.v20,
 
-          // ── Mini stacked bar (visual ikhtisar) ─────────
+          // ── Mini stacked bar (visual ikhtisar 6 kriteria) ─────────
           ClipRRect(
             borderRadius: AppRadius.br8,
             child: SizedBox(
@@ -291,19 +346,6 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       flex: (c.pct * 10).toInt().clamp(1, 1000),
                       child: Container(color: c.color),
                     ),
-                  if (penaltyVal > 0)
-                    Flexible(
-                      flex: ((penaltyVal / finalScore) * 100 * 10)
-                          .toInt()
-                          .clamp(1, 1000),
-                      child: Container(
-                          color: AppColors.accentRed.withValues(alpha: 0.5)),
-                    ),
-                  Flexible(
-                    flex: ((100 - finalScore) * 10).toInt().clamp(1, 1000),
-                    child: Container(
-                        color: context.colors.outline.withValues(alpha: 0.08)),
-                  ),
                 ],
               ),
             ),
@@ -312,7 +354,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
 
           // ── Label Seksi ─────────────────────────────────
           Text(
-            'KONTRIBUSI PER KRITERIA',
+            'KONTRIBUSI 6 KRITERIA TERBOBOT',
             style: context.text.labelSmall?.copyWith(
               color: context.colors.outline,
               fontWeight: FontWeight.bold,
@@ -321,35 +363,22 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           ),
           AppSpacing.v12,
 
-          // ── Daftar Kriteria ──────────────────────────────
+          // ── Daftar 6 Kriteria ──────────────────────────────
           for (int i = 0; i < criteria.length; i++) ...[
             _buildBreakdownItem(
               context: context,
               icon: criteria[i].icon,
               iconColor: criteria[i].color,
+              code: criteria[i].code,
               title: criteria[i].label,
+              weight: criteria[i].weight,
               rawScore: criteria[i].score,
               contributionPct: criteria[i].pct,
-              totalScore: finalScore,
+              matchDegree: criteria[i].matchDegree,
             ),
             if (i < criteria.length - 1)
               const AppDivider.dashed(
                   indent: 0, endIndent: 0, thickness: 0.6),
-          ],
-
-          // ── Penalti ──────────────────────────────────────
-          if (penaltyVal > 0) ...[
-            const AppDivider.dashed(indent: 0, endIndent: 0, thickness: 0.6),
-            _buildBreakdownItem(
-              context: context,
-              icon: HugeIcons.strokeRoundedAlertCircle,
-              iconColor: AppColors.accentRed,
-              title: 'Pengurangan / Penalti',
-              rawScore: -penaltyVal,
-              contributionPct: (penaltyVal / finalScore) * 100,
-              totalScore: finalScore,
-              isPenalty: true,
-            ),
           ],
 
           AppSpacing.v16,
@@ -357,6 +386,25 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           AppSpacing.v12,
 
           // ── Info Tambahan ────────────────────────────────
+          if (widget.spf != null || widget.paGrade != null) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Spesifikasi Proteksi',
+                  style: context.text.labelLarge?.copyWith(
+                      color: context.colors.outline),
+                ),
+                Text(
+                  'SPF ${widget.spf ?? 30} · ${widget.paGrade ?? 'PA+++'}',
+                  style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.onSurface),
+                ),
+              ],
+            ),
+            AppSpacing.v8,
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -421,16 +469,14 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     required BuildContext context,
     required dynamic icon,
     required Color iconColor,
+    required String code,
     required String title,
+    required String weight,
     required double rawScore,
     required double contributionPct,
-    required double totalScore,
-    bool isPenalty = false,
+    double? matchDegree,
   }) {
-    // Persentase kontribusi dari total akhir (mis. 20/80 * 100 = 25%)
-    final displayPct = contributionPct.abs();
-    // Bar fill: seberapa penuh bar relatif terhadap max kemungkinan kriteria ini
-    // Tampilkan bar berdasarkan pct kontribusi dari 100% total
+    final displayPct = contributionPct.clamp(0.0, 100.0);
     final barFill = (displayPct / 100).clamp(0.0, 1.0);
 
     return Padding(
@@ -457,22 +503,31 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: context.text.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: context.colors.onSurface,
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$code · $title ',
+                            style: context.text.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: context.colors.onSurface,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '($weight)',
+                            style: context.text.labelSmall?.copyWith(
+                              color: context.colors.outline,
+                              fontWeight: FontWeight.normal,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Text(
-                      isPenalty
-                          ? '-${displayPct.toStringAsFixed(1)}%'
-                          : '${displayPct.toStringAsFixed(1)}%',
+                      '${rawScore.toStringAsFixed(0)} poin (${displayPct.toStringAsFixed(1)}%)',
                       style: context.text.labelMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: isPenalty
-                            ? AppColors.accentRed
-                            : iconColor,
+                        color: iconColor,
                       ),
                     ),
                   ],
@@ -482,14 +537,10 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                   borderRadius: AppRadius.br8,
                   child: LinearProgressIndicator(
                     value: barFill,
-                    minHeight: 5,
+                    minHeight: 6,
                     backgroundColor:
                         context.colors.outline.withValues(alpha: 0.08),
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(
-                            isPenalty
-                                ? AppColors.accentRed.withValues(alpha: 0.6)
-                                : iconColor),
+                    valueColor: AlwaysStoppedAnimation<Color>(iconColor),
                   ),
                 ),
               ],
@@ -542,6 +593,47 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        if (widget.spf != null || widget.texture != null) ...[
+                          AppSpacing.v4,
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              if (widget.spf != null || widget.paGrade != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentAmber.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'SPF ${widget.spf ?? 30} · ${widget.paGrade ?? 'PA+++'}',
+                                    style: context.text.labelSmall?.copyWith(
+                                      color: AppColors.accentAmber,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              if (widget.texture != null && widget.texture!.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: context.colors.outline.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    widget.texture!.toUpperCase(),
+                                    style: context.text.labelSmall?.copyWith(
+                                      color: context.colors.outline,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),

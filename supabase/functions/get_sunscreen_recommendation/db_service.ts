@@ -44,13 +44,6 @@ export async function fetchSkinProfile(
   return { skinTypeData, skinConcernsData };
 }
 
-export async function fetchAutoAvoidIngredientIds(adminClient: any): Promise<string[]> {
-  const { data: autoAvoidData } = await adminClient
-    .from('ingredients')
-    .select('ingredient_id, ingredient_code')
-    .in('ingredient_code', ['oxybenzone', 'benzophenone_3', 'fragrance']);
-  return (autoAvoidData || []).map((item: any) => item.ingredient_id);
-}
 
 export interface ActiveProductsResult {
   products?: any[];

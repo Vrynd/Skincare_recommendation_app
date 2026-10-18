@@ -4,17 +4,13 @@ import { corsHeaders } from "./cors.ts";
 import {
   mapSkinTypeCode,
   mapConcernCode,
-  comparePaGrade,
 } from "./utils.ts";
 import {
-  isAllergyOrSafetyBlocked,
-  calculateSkinTypeScore,
-  calculateSkinConcernScore,
-  calculateActivityScore,
-  calculateTextureScore,
-  calculateFinishScore,
-  calculatePenalty,
+  evaluateProduct,
 } from "./scoring.ts";
+import {
+  TARGET_ROUTINE,
+} from "./constants.ts";
 import {
   validateRequestBody,
   validateUsageTimePreference,
@@ -22,7 +18,6 @@ import {
 import { getUvDataAndThresholds } from "./uv_service.ts";
 import {
   fetchSkinProfile,
-  fetchAutoAvoidIngredientIds,
   fetchActiveProducts,
   fetchAllSkinTypesMap,
   fetchAllSkinConcernsMap,
@@ -127,10 +122,7 @@ Deno.serve(async (req) => {
 
     const { skinTypeData, skinConcernsData } = skinProfile;
     const userSkinCode = mapSkinTypeCode(skinTypeData.skin_type_code || skinTypeData.skin_type_name);
-    const userConcernCodes = skinConcernsData!.map(item => mapConcernCode(item.skin_concern_code || item.skin_concern_name));
-
-    // Get auto-avoided ingredient IDs for sensitive skin / unknown allergen history
-    const autoAvoidIds = await fetchAutoAvoidIngredientIds(adminClient);
+    const userConcernCodes = (skinConcernsData || []).map(item => mapConcernCode(item.skin_concern_code || item.skin_concern_name));
 
     // --- Fetch Active Products with Relations ---
     const activeProductsRes = await fetchActiveProducts(adminClient);
@@ -143,108 +135,133 @@ Deno.serve(async (req) => {
 
     const products = activeProductsRes.products!;
 
-    // Map all skin types for ID-to-code lookup
+    // Map all skin types & concerns for ID-to-code lookup
     const skinTypeMap = await fetchAllSkinTypesMap(adminClient);
     const skinConcernMap = await fetchAllSkinConcernsMap(adminClient);
 
-    // --- Filter & Score Sunscreen Products ---
-    const qualifiedScoredProducts = [];
+    // --- Evaluasi Skor Produk Sunscreen untuk Kedua Mode (Murni 6 Kriteria Berbobot) ---
+    const routineCandidates = [];
+    const todayCandidates = [];
 
     for (const product of products) {
-      const productIngredientCodes = product.product_ingredients
-        ?.map((pi: any) => pi.ingredients?.ingredient_code?.toLowerCase())
-        .filter(Boolean) || [];
-      const productIngredientIds = product.product_ingredients?.map((pi: any) => pi.ingredient_id) || [];
 
-      // ─────────────────────────────────────
-      // HARD FILTER 1: RIWAYAT ALERGI & SAFETY AUTO-FILTER
-      // ─────────────────────────────────────
-      const isBlocked = isAllergyOrSafetyBlocked(
-        userSkinCode,
-        body.allergy_status,
-        body.avoided_ingredient_ids || [],
-        productIngredientCodes,
-        productIngredientIds,
-        autoAvoidIds
-      );
-
-      if (isBlocked) continue;
-
-      // ─────────────────────────────────────
-      // HARD FILTER 2: SPF DAN PA MINIMUM
-      // ─────────────────────────────────────
-      if (product.spf < spfMinimum) continue;
-      if (!comparePaGrade(product.pa_grade, paMinimum)) continue;
-
-      // ─────────────────────────────────────
-      // SCORING
-      // ─────────────────────────────────────
       const productSkinCodes = product.product_skin_types
         ?.map((pst: any) => skinTypeMap.get(pst.skin_type_id))
         .filter(Boolean) || [];
 
-      // A. Skin Type Score
-      const maxSkinTypeScore = calculateSkinTypeScore(userSkinCode, productSkinCodes);
-
-      // B. Skin Concern Score
       const productConcernCodes = product.product_skin_concerns
         ?.map((psc: any) => skinConcernMap.get(psc.skin_concern_id))
         .filter(Boolean) || [];
-      const skinConcernScore = calculateSkinConcernScore(userConcernCodes, productConcernCodes, product);
 
-      // C. Activity Score
-      const activityScore = calculateActivityScore(body.activity, product);
+      // ─────────────────────────────────────
+      // MODE 1: REKOMENDASI RUTIN (Standar Tropis SPF 30 PA+++)
+      // ─────────────────────────────────────
+      const evalRoutine = evaluateProduct(
+        product,
+        userSkinCode,
+        userConcernCodes,
+        body.activity,
+        body.texture_preference,
+        body.finish_preference,
+        TARGET_ROUTINE.spf,
+        TARGET_ROUTINE.pa,
+        productSkinCodes,
+        productConcernCodes
+      );
 
-      // D. Texture Score
-      const textureScore = calculateTextureScore(body.texture_preference, product.texture, userSkinCode);
-
-      // E. Finish Score
-      const finishScore = calculateFinishScore(body.finish_preference, product.finish, userSkinCode);
-
-      const totalRaw = maxSkinTypeScore + skinConcernScore + activityScore + textureScore + finishScore;
-
-      // F. Penalty Calculation
-      const penalty = calculatePenalty(userSkinCode, body.activity, product);
-
-      const finalScore = Math.max(0, totalRaw - penalty);
-
-      if (finalScore >= 40) {
-        qualifiedScoredProducts.push({
+      if (evalRoutine.isEligible) {
+        routineCandidates.push({
           product,
-          maxSkinTypeScore,
-          skinConcernScore,
-          activityScore,
-          textureScore,
-          finishScore,
-          totalRaw,
-          penalty,
-          finalScore
+          eval: evalRoutine,
+          finalScore: evalRoutine.finalScore,
+        });
+      }
+
+      // ─────────────────────────────────────
+      // MODE 2: REKOMENDASI HARI INI (Sesuai Indeks UV Cuaca Open-Meteo)
+      // ─────────────────────────────────────
+      const evalToday = evaluateProduct(
+        product,
+        userSkinCode,
+        userConcernCodes,
+        body.activity,
+        body.texture_preference,
+        body.finish_preference,
+        spfMinimum,
+        paMinimum,
+        productSkinCodes,
+        productConcernCodes
+      );
+
+      if (evalToday.isEligible) {
+        todayCandidates.push({
+          product,
+          eval: evalToday,
+          finalScore: evalToday.finalScore,
         });
       }
     }
 
-    // --- Ranking & Top 3 Selection ---
-    qualifiedScoredProducts.sort((a, b) => b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
-    const topProducts = qualifiedScoredProducts.slice(0, 3);
+    // --- Ranking & Top 3 Selection untuk Kedua Mode ---
+    routineCandidates.sort((a, b) => b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
+    todayCandidates.sort((a, b) => b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
 
-    if (topProducts.length === 0) {
-      return new Response(JSON.stringify({ error: "Tidak ada produk yang cukup sesuai dengan kondisi kulit dan UV saat ini (Skor minimal 40)" }), {
+    const topRoutine = routineCandidates.slice(0, 3).map((item, index) => ({
+      ...item,
+      rank_position: index + 1,
+    }));
+
+    const topToday = todayCandidates.slice(0, 3).map((item, index) => ({
+      ...item,
+      rank_position: index + 1,
+    }));
+
+    if (topRoutine.length === 0 && topToday.length === 0) {
+      return new Response(JSON.stringify({ error: "Rekomendasi yang sesuai belum tersedia untuk kondisi saat ini." }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    const ranked = topProducts.map((item, index) => {
-      let category = 'fairly_suitable';
-      if (item.finalScore >= 80) category = 'highly_recommended';
-      else if (item.finalScore >= 60) category = 'recommended';
-
-      return {
-        ...item,
-        rank_position: index + 1,
-        category
-      };
+    // Helper formatter untuk output produk
+    const formatProductOutput = (item: any) => ({
+      rank_position: item.rank_position,
+      product_id: item.product.product_id,
+      product_code: item.product.product_code,
+      brand_name: item.product.brand_name,
+      product_name: item.product.product_name,
+      bpom_number: item.product.bpom_number,
+      spf: item.product.spf,
+      pa_grade: item.product.pa_grade,
+      sunscreen_type: item.product.sunscreen_type,
+      texture: item.product.texture,
+      finish: item.product.finish,
+      match_score: item.eval.finalScore,
+      recommendation_category: item.eval.category,
+      // 6 Nilai Kecocokan Kriteria (s_ij)
+      s_uv: item.eval.s_uv,
+      s_skin: item.eval.s_skin,
+      s_activity: item.eval.s_activity,
+      s_concern: item.eval.s_concern,
+      s_texture: item.eval.s_texture,
+      s_finish: item.eval.s_finish,
+      // Persentase Kontribusi Relatif K_ij (Persamaan 2 - Total 100%)
+      contributions: item.eval.contributions,
+      // Skor Poin Terbobot (Kompatibilitas Tampilan Lama)
+      uv_score: Math.round(item.eval.s_uv * 25),
+      skin_type_score: Math.round(item.eval.s_skin * 25),
+      activity_score: Math.round(item.eval.s_activity * 20),
+      skin_concern_score: Math.round(item.eval.s_concern * 10),
+      texture_score: Math.round(item.eval.s_texture * 10),
+      finish_score: Math.round(item.eval.s_finish * 10),
+      penalty: 0,
     });
+
+    const routineFormatted = topRoutine.map(formatProductOutput);
+    const todayFormatted = topToday.map(formatProductOutput);
+
+    // Primary results to save in DB transaction (prioritaskan today, fallback ke routine)
+    const primaryForTransaction = topToday.length > 0 ? topToday : topRoutine;
 
     // --- Save to Database via PL/pgSQL Transaction RPC ---
     const transaction = await saveRecommendationTransaction(adminClient, {
@@ -261,51 +278,43 @@ Deno.serve(async (req) => {
       uvIndex: uvIndex,
       skinConcernIds: body.skin_concern_ids || [],
       avoidedIngredientIds: body.avoided_ingredient_ids || [],
-      rankedProducts: ranked
+      rankedProducts: primaryForTransaction.map(item => ({
+        product: item.product,
+        finalScore: item.eval.finalScore,
+        category: item.eval.category,
+        rank_position: item.rank_position,
+        maxSkinTypeScore: Math.round(item.eval.s_skin * 25),
+        activityScore: Math.round(item.eval.s_activity * 20),
+        skinConcernScore: Math.round(item.eval.s_concern * 10),
+        textureScore: Math.round(item.eval.s_texture * 10),
+        finishScore: Math.round(item.eval.s_finish * 10),
+        penalty: 0,
+      }))
     });
 
-    if (transaction.error) {
-      return new Response(JSON.stringify({ error: transaction.error }), {
-        status: transaction.statusCode || 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+    let sessionResponse = { session_id: null, recommendation_code: null };
+    if (!transaction.error && transaction.transactionRes) {
+      sessionResponse = transaction.transactionRes;
     }
 
-    const { transactionRes } = transaction;
-
-    // --- Format Response Payload ---
+    // --- Format Response Payload Lengkap (Dual Mode) ---
     const responsePayload = {
-      recommendation_session_id: transactionRes.session_id,
-      recommendation_code: transactionRes.recommendation_code,
+      recommendation_session_id: sessionResponse.session_id,
+      recommendation_code: sessionResponse.recommendation_code,
       uv_data: {
         uv_index: uvIndex,
         uv_risk_level: uvRiskLevel,
         spf_minimum: spfMinimum,
         pa_minimum: paMinimum,
+        routine_spf_target: TARGET_ROUTINE.spf,
+        routine_pa_target: TARGET_ROUTINE.pa,
         usage_time_preference: usageTimePref,
         is_forecast: isForecast
       },
-      results: ranked.map(item => ({
-        rank_position: item.rank_position,
-        product_id: item.product.product_id,
-        product_code: item.product.product_code,
-        brand_name: item.product.brand_name,
-        product_name: item.product.product_name,
-        bpom_number: item.product.bpom_number,
-        spf: item.product.spf,
-        pa_grade: item.product.pa_grade,
-        sunscreen_type: item.product.sunscreen_type,
-        texture: item.product.texture,
-        finish: item.product.finish,
-        match_score: item.finalScore,
-        recommendation_category: item.category,
-        skin_type_score: item.maxSkinTypeScore,
-        activity_score: item.activityScore,
-        skin_concern_score: item.skinConcernScore,
-        texture_score: item.textureScore,
-        finish_score: item.finishScore,
-        penalty: item.penalty
-      }))
+      routine_results: routineFormatted,
+      today_results: todayFormatted,
+      // Fallback backward-compatibility untuk client lama
+      results: todayFormatted.length > 0 ? todayFormatted : routineFormatted,
     };
 
     return new Response(JSON.stringify(responsePayload), {

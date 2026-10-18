@@ -169,7 +169,6 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               AppSpacing.v20,
               Expanded(
-                flex: 3,
                 child: AppContainer.card(
                   borderRadius: AppRadius.br32,
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 48),

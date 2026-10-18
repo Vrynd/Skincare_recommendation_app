@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
 import 'package:recommendation_app/core/routes/app_router.dart';
+import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_empty_state.dart';
@@ -128,7 +129,9 @@ class _ResultRecommendationScreenState
                   ],
                 ),
               )
-            else if (provider.currentSessionResults.isEmpty)
+            else if (provider.currentSessionResults.isEmpty &&
+                provider.routineResults.isEmpty &&
+                provider.todayResults.isEmpty)
               const AppEmptyState(
                 icon: HugeIcons.strokeRoundedAlertCircle,
                 title: 'Produk Belum Tersedia',
@@ -138,15 +141,39 @@ class _ResultRecommendationScreenState
               )
             else ...[
               _buildSummary(context, provider.currentSessionDetails),
-              AppSpacing.v32,
-              const AppTitleAction.none(title: 'Rekomendasi Utama'),
-              AppSpacing.v12,
-              productCard(provider.currentSessionResults.first),
-              if (provider.currentSessionResults.length > 1) ...[
-                AppSpacing.v24,
-                const AppTitleAction.none(title: 'Rekomendasi Alternatif'),
+              AppSpacing.v24,
+              _buildModeTabSelector(context, provider),
+              AppSpacing.v16,
+              _buildModeDescriptionCard(
+                  context, provider, provider.currentSessionDetails),
+              AppSpacing.v24,
+              if (provider.activeModeResults.isEmpty &&
+                  provider.currentSessionResults.isEmpty)
+                const AppEmptyState(
+                  icon: HugeIcons.strokeRoundedAlertCircle,
+                  title: 'Produk Belum Tersedia',
+                  description:
+                      'Tidak ada produk yang memenuhi ambang batas untuk mode ini.',
+                  height: 180,
+                )
+              else ...[
+                const AppTitleAction.none(title: 'Rekomendasi Utama'),
                 AppSpacing.v12,
-                ...provider.currentSessionResults.skip(1).map(productCard),
+                productCard(provider.activeModeResults.isNotEmpty
+                    ? provider.activeModeResults.first.toMap()
+                    : provider.currentSessionResults.first),
+                if ((provider.activeModeResults.isNotEmpty
+                        ? provider.activeModeResults.length
+                        : provider.currentSessionResults.length) >
+                    1) ...[
+                  AppSpacing.v24,
+                  const AppTitleAction.none(title: 'Rekomendasi Alternatif'),
+                  AppSpacing.v12,
+                  ...(provider.activeModeResults.isNotEmpty
+                          ? provider.activeModeResults.skip(1).map((e) => e.toMap())
+                          : provider.currentSessionResults.skip(1))
+                      .map(productCard),
+                ],
               ],
             ],
           ],
@@ -229,6 +256,171 @@ class _ResultRecommendationScreenState
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildModeTabSelector(
+      BuildContext context, RecommendationProvider provider) {
+    final selectedIndex = provider.selectedModeIndex;
+
+    return AppContainer.bordered(
+      height: 54,
+      width: double.infinity,
+      borderColor: context.colors.surfaceContainerHigh.withValues(alpha: 0.8),
+      borderRadius: AppRadius.br32,
+      padding: const EdgeInsets.all(4),
+      child: Stack(
+        children: [
+          // Animated sliding pill indicator
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubic,
+            alignment: selectedIndex == 0
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              heightFactor: 1.0,
+              child: AppContainer(
+                borderRadius: AppRadius.br32,
+                color: context.colors.primary,
+                opacity: 0.12,
+                showBorder: false,
+                showShadow: false,
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+          // Options row
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => provider.setSelectedModeIndex(0),
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        HugeIcon(
+                          icon: HugeIcons.strokeRoundedDroplet,
+                          color: selectedIndex == 0
+                              ? context.colors.primary
+                              : context.colors.outline,
+                          size: 18,
+                        ),
+                        AppSpacing.h8,
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: context.text.bodyMedium!.copyWith(
+                            fontWeight: selectedIndex == 0
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: selectedIndex == 0
+                                ? context.colors.primary
+                                : context.colors.outline,
+                          ),
+                          child: const Text('Rekomendasi Rutin'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => provider.setSelectedModeIndex(1),
+                  behavior: HitTestBehavior.opaque,
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        HugeIcon(
+                          icon: HugeIcons.strokeRoundedSun02,
+                          color: selectedIndex == 1
+                              ? AppColors.accentAmber
+                              : context.colors.outline,
+                          size: 18,
+                        ),
+                        AppSpacing.h8,
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: context.text.bodyMedium!.copyWith(
+                            fontWeight: selectedIndex == 1
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: selectedIndex == 1
+                                ? AppColors.accentAmber
+                                : context.colors.outline,
+                          ),
+                          child: const Text('Proteksi Hari Ini'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeDescriptionCard(BuildContext context,
+      RecommendationProvider provider, Map<String, dynamic>? details) {
+    final isRoutine = provider.isRoutineMode;
+    final session = details?['session'] as Map<String, dynamic>? ?? {};
+    final uvIdx = session['uv_index'] ?? provider.uvData?.uvIndex;
+    final uvStr = uvIdx != null ? (uvIdx as num).toStringAsFixed(1) : '-';
+
+    return AppContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      borderRadius: AppRadius.br16,
+      color: isRoutine ? AppColors.accentBlue : AppColors.accentAmber,
+      opacity: 0.08,
+      showBorder: false,
+      showShadow: false,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          HugeIcon(
+            icon: isRoutine
+                ? HugeIcons.strokeRoundedInformationCircle
+                : HugeIcons.strokeRoundedSun02,
+            color: isRoutine ? AppColors.accentBlue : AppColors.accentAmber,
+            size: 20,
+          ),
+          AppSpacing.h12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isRoutine
+                      ? 'Mode Rutin (Penggunaan Berulang)'
+                      : 'Mode Proteksi Situasional Hari Ini',
+                  style: context.text.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color:
+                        isRoutine ? AppColors.accentBlue : AppColors.accentAmber,
+                  ),
+                ),
+                AppSpacing.v4,
+                Text(
+                  isRoutine
+                      ? 'Rekomendasi stabil berbasis profil kulit untuk stok pemakaian berulang sehari-hari dengan target proteksi dasar (SPF ≥ 30, PA ≥ +++).'
+                      : 'Rekomendasi adaptif terhadap indeks UV cuaca hari ini (UV $uvStr) dan intensitas aktivitas harian Anda.',
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

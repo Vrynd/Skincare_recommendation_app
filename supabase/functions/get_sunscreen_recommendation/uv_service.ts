@@ -1,3 +1,5 @@
+import { getTodayTarget } from "./constants.ts";
+
 export interface UvDataResult {
   uvIndex: number;
   uvRiskLevel: string;
@@ -60,17 +62,10 @@ export async function getUvDataAndThresholds(
     uvIndex = Math.max(...values);
   }
 
-  // --- SPF Minimum, PA Minimum & Risk Level ---
-  let spfMinimum = 15;
-  if (uvIndex <= 2) spfMinimum = 15;
-  else if (uvIndex <= 5) spfMinimum = 30;
-  else spfMinimum = 50;
-
-  let paMinimum = 'PA+';
-  if (uvIndex <= 2) paMinimum = 'PA+';
-  else if (uvIndex <= 5) paMinimum = 'PA++';
-  else if (uvIndex <= 10) paMinimum = 'PA+++';
-  else paMinimum = 'PA++++';
+  // Target SPF dan PA Berdasarkan Tabel 3 Metodologi
+  const target = getTodayTarget(uvIndex);
+  const spfMinimum = target.spf;
+  const paMinimum = target.pa;
 
   let uvRiskLevel = 'low';
   if (uvIndex <= 2) uvRiskLevel = 'low';
