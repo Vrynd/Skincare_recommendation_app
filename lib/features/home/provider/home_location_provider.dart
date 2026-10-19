@@ -34,12 +34,22 @@ class HomeLocationProvider extends ChangeNotifier {
   bool get hasPermissions => _hasPermissions;
 
   // Getters Indeks UV
-  double get uvIndex => _uvIndex;
+  double get uvIndex {
+    if (_hourlyForecast.isNotEmpty) {
+      final currentHour = DateTime.now().hour;
+      final match = _hourlyForecast.where((f) => f.time.hour == currentHour);
+      if (match.isNotEmpty) {
+        return match.first.uvIndex;
+      }
+    }
+    return _uvIndex;
+  }
+
   String get peakTimeRange => _peakTimeRange;
   String get uvDurationText => _uvDurationText;
   String get spfText => _spfText;
   bool get isUvLoading => _isUvLoading;
-  UVRiskLevel get uvRiskLevel => UVRiskLevel.fromIndex(_uvIndex);
+  UVRiskLevel get uvRiskLevel => UVRiskLevel.fromIndex(uvIndex);
   List<HourlyUVForecast> get hourlyForecast => _hourlyForecast;
 
   /// Memulai pendeteksian lokasi GPS secara realtime dengan mekanisme Caching Stale-While-Revalidate (SWR)

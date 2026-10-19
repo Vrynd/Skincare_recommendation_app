@@ -3,6 +3,7 @@
 
 class SunscreenRecommendationItem {
   final int rankPosition;
+  final String? mode;
   final String productId;
   final String? productCode;
   final String brandName;
@@ -38,6 +39,7 @@ class SunscreenRecommendationItem {
 
   const SunscreenRecommendationItem({
     required this.rankPosition,
+    this.mode,
     required this.productId,
     this.productCode,
     required this.brandName,
@@ -82,6 +84,7 @@ class SunscreenRecommendationItem {
 
     return SunscreenRecommendationItem(
       rankPosition: (json['rank_position'] as num?)?.toInt() ?? 1,
+      mode: json['mode']?.toString(),
       productId: (productObj['product_id'] ?? json['product_id'] ?? '').toString(),
       productCode: (productObj['product_code'] ?? json['product_code'])?.toString(),
       brandName: (productObj['brand_name'] ?? json['brand_name'] ?? '-').toString(),
@@ -115,6 +118,7 @@ class SunscreenRecommendationItem {
   Map<String, dynamic> toMap() {
     return {
       'rank_position': rankPosition,
+      'mode': mode,
       'product_id': productId,
       'product_code': productCode,
       'brand_name': brandName,

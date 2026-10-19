@@ -28,6 +28,59 @@ String uvDisplay(dynamic idx, String? lvl) {
   return l == null ? i : '$i · $l';
 }
 
+String targetProtectionDisplay(dynamic uv) {
+  if (uv == null) return 'SPF ≥ 30 · PA+++';
+  final numVal =
+      uv is num ? uv.toDouble() : double.tryParse(uv.toString()) ?? 6.0;
+  if (numVal < 3.0) return 'SPF 15 · PA++';
+  if (numVal < 6.0) return 'SPF 30 · PA+++';
+  if (numVal < 8.0) return 'SPF 30 - 50 · PA+++';
+  return 'SPF 50+ · PA++++';
+}
+
+Widget summaryItemTile({
+  required dynamic icon,
+  required Color iconColor,
+  required String title,
+  required String value,
+  bool showDivider = true,
+  bool isEllipsis = false,
+}) {
+  return Builder(
+    builder: (context) {
+      return AppTile.modern(
+        icon: icon,
+        iconColor: iconColor,
+        title: title,
+        trailing: isEllipsis
+            ? ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 165),
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: context.colors.outline,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )
+            : Text(
+                value,
+                textAlign: TextAlign.end,
+                style: context.text.bodyMedium?.copyWith(
+                  color: context.colors.outline,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        showDivider: showDivider,
+      );
+    },
+  );
+}
+
 Widget summaryTile(int i, String v) {
   final cfg = [
     (HugeIcons.strokeRoundedDroplet, AppColors.accentPurple, 'Jenis Kulit'),
@@ -70,8 +123,15 @@ Widget ingredientChip(BuildContext context, String name) {
   );
 }
 
-Widget productCard(Map<String, dynamic> item) {
+Widget productCard(Map<String, dynamic> item, {bool? isRoutine}) {
   final p = item['products'] as Map<String, dynamic>? ?? {};
+  final mode = (item['mode'] ?? '').toString();
+  final effectiveIsRoutine = isRoutine ??
+      (mode == 'routine'
+          ? true
+          : mode == 'today'
+              ? false
+              : null);
 
   Map<String, double>? parseContributions(dynamic c) {
     if (c is Map) {
@@ -114,6 +174,8 @@ Widget productCard(Map<String, dynamic> item) {
       texture: (item['texture'] ?? p['texture'])?.toString(),
       finish: (item['finish'] ?? p['finish'])?.toString(),
       penalty: (item['penalty'] as num?)?.toDouble() ?? 0.0,
+      isRoutine: effectiveIsRoutine,
+      mode: mode.isNotEmpty ? mode : null,
     ),
   );
 }

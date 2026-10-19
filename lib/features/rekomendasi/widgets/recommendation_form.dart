@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
-import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
+import 'package:recommendation_app/core/widgets/app_container.dart';
+import 'package:recommendation_app/core/widgets/app_radius.dart';
+import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
@@ -20,17 +23,16 @@ class RecommendationForm extends StatelessWidget {
   const RecommendationForm({super.key});
 
   static const List<String> _activities = [
-    'Dalam Ruangan (Indoor)',
-    'Luar Ruangan Ringan',
-    'Luar Ruangan Intens',
-    'Olahraga / Sport',
-    'Berenang / Aktivitas Air',
+    'Di Dalam Ruangan',
+    'Di Luar Ruangan',
+    'Olahraga',
+    'Berenang',
   ];
 
   static const List<String> _finishes = [
     'Matte',
-    'Dewy / Glowy',
-    'Natural / Satin',
+    'Dewy',
+    'Natural',
     'Tone-Up',
   ];
 
@@ -45,13 +47,28 @@ class RecommendationForm extends StatelessWidget {
     final provider = context.watch<RecommendationProvider>();
     final formProvider = context.watch<RecommendationFormProvider>();
 
-    final showUsageTimeForm = formProvider.isNight;
+    final isRoutine = formProvider.isRoutineMode;
+    final showUsageTimeForm = formProvider.isTodayMode && formProvider.isNight;
 
+    if (isRoutine) {
+      return _buildRoutineForm(context, provider, formProvider);
+    } else {
+      return _buildTodayForm(context, provider, formProvider, showUsageTimeForm);
+    }
+  }
+
+  /// Formulir Mode Rekomendasi Produk
+  /// Urutan: 01 Jenis Kulit, 02 Masalah Kulit, 03 Aktivitas, 04 Tekstur, 05 Hasil Akhir
+  Widget _buildRoutineForm(
+    BuildContext context,
+    RecommendationProvider provider,
+    RecommendationFormProvider formProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Pertanyaan 01: Jenis Kulit
+        // 01: Jenis Kulit
         SingleChoice<SkinTypeModel>(
           indexNumber: '01',
           question: 'Apa jenis kulitmu?',
@@ -65,7 +82,7 @@ class RecommendationForm extends StatelessWidget {
         ),
         AppSpacing.v16,
 
-        // Pertanyaan 02: Masalah Kulit (Multi-Select, maks 2)
+        // 02: Masalah Kulit
         MultipleChoice<SkinConcernModel>(
           indexNumber: '02',
           question: 'Apa masalah kulitmu saat ini? (Maksimal 2)',
@@ -80,7 +97,8 @@ class RecommendationForm extends StatelessWidget {
             if (noneAdded) {
               formProvider.setSelectedSkinProblems([_noneConcern]);
             } else {
-              final realConcerns = concerns.where((c) => c != _noneConcern).toList();
+              final realConcerns =
+                  concerns.where((c) => c != _noneConcern).toList();
               formProvider.setSelectedSkinProblems(realConcerns);
             }
           },
@@ -89,10 +107,11 @@ class RecommendationForm extends StatelessWidget {
         ),
         AppSpacing.v16,
 
-        // Pertanyaan 03: Aktivitas Harian
+        // 03: Aktivitas
         SingleChoice<String>(
           indexNumber: '03',
-          question: 'Bagaimana aktivitasmu saat menggunakan sunscreen?',
+          question:
+              'Bagaimana kebiasaan aktivitas utamamu saat menggunakan sunscreen?',
           options: _activities,
           selectedOption: formProvider.selectedActivity,
           optionLabelBuilder: (activity) => activity,
@@ -102,10 +121,9 @@ class RecommendationForm extends StatelessWidget {
           },
         ),
 
-        // Pertanyaan 04 & 05 hanya muncul jika Jenis Kulit sudah dipilih (agar dinamis)
+        // 04 & 05: Tekstur & Hasil Akhir jika jenis kulit sudah dipilih
         if (formProvider.selectedSkinType != null) ...[
           AppSpacing.v16,
-          // Pertanyaan 04: Tekstur Dinamis
           SingleChoice<String>(
             indexNumber: '04',
             question: 'Tekstur sunscreen seperti apa yang kamu sukai?',
@@ -117,45 +135,19 @@ class RecommendationForm extends StatelessWidget {
               formProvider.setSelectedTexture(texture);
             },
           ),
-          if (formProvider.selectedTexture != null && formProvider.selectedTextureDescription != null) ...[
-            AppSpacing.v8,
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: context.colors.primary.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: context.colors.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      formProvider.selectedTextureDescription!,
-                      style: context.text.bodyMedium?.copyWith(
-                            color: context.colors.onSurface.withValues(alpha: 0.85),
-                            height: 1.4,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
+          if (formProvider.selectedTextureDescription != null) ...[
+            AppSpacing.v12,
+            _buildInfoBanner(
+              context,
+              title: 'Tekstur ${formProvider.selectedTexture}',
+              description: formProvider.selectedTextureDescription!,
             ),
           ],
           AppSpacing.v16,
-
-          // Pertanyaan 05: Hasil Akhir / Finish
           SingleChoice<String>(
             indexNumber: '05',
-            question: 'Bagaimana hasil akhir sunscreen pada wajah yang kamu inginkan?',
+            question:
+                'Bagaimana hasil akhir sunscreen pada wajah yang kamu inginkan?',
             options: _finishes,
             selectedOption: formProvider.selectedFinish,
             optionLabelBuilder: (finish) => finish,
@@ -164,47 +156,117 @@ class RecommendationForm extends StatelessWidget {
               formProvider.setSelectedFinish(finish);
             },
           ),
-          if (formProvider.selectedFinish != null && formProvider.selectedFinishDescription != null) ...[
-            AppSpacing.v8,
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: context.colors.primary.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: context.colors.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      formProvider.selectedFinishDescription!,
-                      style: context.text.bodyMedium?.copyWith(
-                            color: context.colors.onSurface.withValues(alpha: 0.85),
-                            height: 1.4,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
+          if (formProvider.selectedFinishDescription != null) ...[
+            AppSpacing.v12,
+            _buildInfoBanner(
+              context,
+              title: 'Hasil Akhir ${formProvider.selectedFinish}',
+              description: formProvider.selectedFinishDescription!,
             ),
           ],
         ],
+      ],
+    );
+  }
 
-        // Pertanyaan 06 (Kondisional Malam Hari)
+  /// Formulir Mode Hari Ini
+  /// Urutan yang diutamakan:
+  /// 01 Aktivitas apa?
+  /// 02 Jenis kulit apa?
+  /// 03 Memiliki masalah kulit atau tidak?
+  /// 04 Hasil akhir pemakaian seperti apa yang Anda inginkan?
+  /// (Tekstur ditiadakan di Mode Hari Ini)
+  Widget _buildTodayForm(
+    BuildContext context,
+    RecommendationProvider provider,
+    RecommendationFormProvider formProvider,
+    bool showUsageTimeForm,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 01: Aktivitas Hari Ini
+        SingleChoice<String>(
+          indexNumber: '01',
+          question: 'Bagaimana rencanamu beraktivitas hari ini?',
+          options: _activities,
+          selectedOption: formProvider.selectedActivity,
+          optionLabelBuilder: (activity) => activity,
+          isLoading: provider.isLoading && provider.skinTypes.isEmpty,
+          onOptionSelected: (activity) {
+            formProvider.setSelectedActivity(activity);
+          },
+        ),
+        AppSpacing.v16,
+
+        // 02: Jenis Kulit
+        SingleChoice<SkinTypeModel>(
+          indexNumber: '02',
+          question: 'Apa jenis kulitmu?',
+          options: provider.skinTypes,
+          selectedOption: formProvider.selectedSkinType,
+          optionLabelBuilder: (type) => type.displayName,
+          isLoading: provider.isLoading && provider.skinTypes.isEmpty,
+          onOptionSelected: (type) {
+            formProvider.setSelectedSkinType(type);
+          },
+        ),
+        AppSpacing.v16,
+
+        // 03: Masalah Kulit
+        MultipleChoice<SkinConcernModel>(
+          indexNumber: '03',
+          question: 'Apa masalah kulitmu saat ini? (Maksimal 2)',
+          options: [
+            _noneConcern,
+            ...provider.skinConcerns,
+          ],
+          selectedOptions: formProvider.selectedSkinProblems,
+          onOptionsChanged: (concerns) {
+            final noneAdded = concerns.contains(_noneConcern) &&
+                !formProvider.selectedSkinProblems.contains(_noneConcern);
+            if (noneAdded) {
+              formProvider.setSelectedSkinProblems([_noneConcern]);
+            } else {
+              final realConcerns =
+                  concerns.where((c) => c != _noneConcern).toList();
+              formProvider.setSelectedSkinProblems(realConcerns);
+            }
+          },
+          optionLabelBuilder: (concern) => concern.displayName,
+          isLoading: provider.isLoading && provider.skinConcerns.isEmpty,
+        ),
+        AppSpacing.v16,
+
+        // 04: Hasil Akhir / Finish
+        SingleChoice<String>(
+          indexNumber: '04',
+          question:
+              'Bagaimana hasil akhir sunscreen pada wajah yang kamu inginkan?',
+          options: _finishes,
+          selectedOption: formProvider.selectedFinish,
+          optionLabelBuilder: (finish) => finish,
+          isLoading: provider.isLoading && provider.skinTypes.isEmpty,
+          onOptionSelected: (finish) {
+            formProvider.setSelectedFinish(finish);
+          },
+        ),
+        if (formProvider.selectedFinishDescription != null) ...[
+          AppSpacing.v12,
+          _buildInfoBanner(
+            context,
+            title: 'Hasil Akhir ${formProvider.selectedFinish}',
+            description: formProvider.selectedFinishDescription!,
+          ),
+        ],
+
+        // 05: Waktu Penggunaan (hanya jika malam hari)
         if (showUsageTimeForm) ...[
           AppSpacing.v16,
           SingleChoice<String>(
-            indexNumber: '06',
-            question: 'Kapan kamu akan menggunakan sunscreen ini?',
+            indexNumber: '05',
+            question: 'Kapan kamu akan menggunakan sunscreen ini besok?',
             options: _usageTimes,
             selectedOption: formProvider.selectedUsageTime,
             optionLabelBuilder: (time) => time,
@@ -215,6 +277,64 @@ class RecommendationForm extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  /// Banner informasi penjelasan karakteristik opsi yang sedang dipilih
+  Widget _buildInfoBanner(
+    BuildContext context, {
+    required String title,
+    required String description,
+  }) {
+    return AppContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      borderRadius: AppRadius.br16,
+      color: context.colors.primary,
+      opacity: 0.08,
+      showBorder: true,
+      borderColor: context.colors.primary.withValues(alpha: 0.2),
+      showShadow: false,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: context.colors.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedInformationCircle,
+              color: context.colors.primary,
+              size: 16,
+            ),
+          ),
+          AppSpacing.h12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: context.text.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.primary,
+                  ),
+                ),
+                AppSpacing.v4,
+                Text(
+                  description,
+                  style: context.text.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

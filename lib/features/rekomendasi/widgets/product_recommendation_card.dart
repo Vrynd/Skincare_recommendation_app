@@ -35,6 +35,8 @@ class ProductRecommendationCard extends StatefulWidget {
   final String? texture;
   final String? finish;
   final double? penalty;
+  final bool? isRoutine;
+  final String? mode;
 
   const ProductRecommendationCard({
     super.key,
@@ -64,6 +66,8 @@ class ProductRecommendationCard extends StatefulWidget {
     this.texture,
     this.finish,
     this.penalty,
+    this.isRoutine,
+    this.mode,
   });
 
   @override
@@ -168,68 +172,104 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
       return finalScore > 0 ? (score / finalScore) * 100 : 0.0;
     }
 
-    final criteria = [
-      (
-        code: 'C1',
-        icon: HugeIcons.strokeRoundedSun02,
-        color: AppColors.accentAmber,
-        label: 'Proteksi UV',
-        weight: '25%',
-        score: uv,
-        pct: getContrib('uv', uv),
-        matchDegree: widget.sUv,
-      ),
-      (
-        code: 'C2',
-        icon: HugeIcons.strokeRoundedDroplet,
-        color: AppColors.accentPurple,
-        label: 'Jenis Kulit',
-        weight: '25%',
-        score: skinType,
-        pct: getContrib('skinType', skinType),
-        matchDegree: widget.sSkin,
-      ),
-      (
-        code: 'C3',
-        icon: HugeIcons.strokeRoundedActivity01,
-        color: AppColors.accentBlue,
-        label: 'Aktivitas Harian',
-        weight: '20%',
-        score: activity,
-        pct: getContrib('activity', activity),
-        matchDegree: widget.sActivity,
-      ),
-      (
-        code: 'C4',
-        icon: HugeIcons.strokeRoundedAlert01,
-        color: AppColors.accentOrange,
-        label: 'Masalah Kulit',
-        weight: '10%',
-        score: concern,
-        pct: getContrib('skinConcern', concern),
-        matchDegree: widget.sConcern,
-      ),
-      (
-        code: 'C5',
-        icon: HugeIcons.strokeRoundedSparkles,
-        color: AppColors.accentTeal,
-        label: 'Preferensi Tekstur',
-        weight: '10%',
-        score: texture,
-        pct: getContrib('texture', texture),
-        matchDegree: widget.sTexture,
-      ),
-      (
-        code: 'C6',
-        icon: HugeIcons.strokeRoundedCircle,
-        color: AppColors.accentPink,
-        label: 'Hasil Akhir',
-        weight: '10%',
-        score: finish,
-        pct: getContrib('finish', finish),
-        matchDegree: widget.sFinish,
-      ),
-    ];
+    final isRoutineMode = widget.isRoutine ??
+        (widget.mode == 'routine' || (widget.sTexture != null && widget.sTexture! > 0));
+
+    final criteria = isRoutineMode
+        ? [
+            (
+              icon: HugeIcons.strokeRoundedDroplet,
+              color: AppColors.accentPurple,
+              label: 'Jenis Kulit',
+              weight: '33.3%',
+              score: skinType,
+              pct: getContrib('skinType', skinType),
+              matchDegree: widget.sSkin,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedActivity01,
+              color: AppColors.accentBlue,
+              label: 'Aktivitas Harian',
+              weight: '26.7%',
+              score: activity,
+              pct: getContrib('activity', activity),
+              matchDegree: widget.sActivity,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedAlert01,
+              color: AppColors.accentOrange,
+              label: 'Kondisi Kulit',
+              weight: '13.3%',
+              score: concern,
+              pct: getContrib('skinConcern', concern),
+              matchDegree: widget.sConcern,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedSparkles,
+              color: AppColors.accentTeal,
+              label: 'Tekstur Produk',
+              weight: '13.3%',
+              score: texture,
+              pct: getContrib('texture', texture),
+              matchDegree: widget.sTexture,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedCircle,
+              color: AppColors.accentPink,
+              label: 'Hasil Akhir',
+              weight: '13.3%',
+              score: finish,
+              pct: getContrib('finish', finish),
+              matchDegree: widget.sFinish,
+            ),
+          ]
+        : [
+            (
+              icon: HugeIcons.strokeRoundedSun02,
+              color: AppColors.accentAmber,
+              label: 'Proteksi UV',
+              weight: '27.8%',
+              score: uv,
+              pct: getContrib('uv', uv),
+              matchDegree: widget.sUv,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedDroplet,
+              color: AppColors.accentPurple,
+              label: 'Jenis Kulit',
+              weight: '27.8%',
+              score: skinType,
+              pct: getContrib('skinType', skinType),
+              matchDegree: widget.sSkin,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedActivity01,
+              color: AppColors.accentBlue,
+              label: 'Aktivitas Harian',
+              weight: '22.2%',
+              score: activity,
+              pct: getContrib('activity', activity),
+              matchDegree: widget.sActivity,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedAlert01,
+              color: AppColors.accentOrange,
+              label: 'Kondisi Kulit',
+              weight: '11.1%',
+              score: concern,
+              pct: getContrib('skinConcern', concern),
+              matchDegree: widget.sConcern,
+            ),
+            (
+              icon: HugeIcons.strokeRoundedCircle,
+              color: AppColors.accentPink,
+              label: 'Hasil Akhir',
+              weight: '11.1%',
+              score: finish,
+              pct: getContrib('finish', finish),
+              matchDegree: widget.sFinish,
+            ),
+          ];
 
     AppBottomSheet.show(
       context: context,
@@ -312,7 +352,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total Kesesuaian Terbobot',
+                        'Tingkat Kesesuaian Produk',
                         style: context.text.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: context.colors.onSurface,
@@ -320,7 +360,9 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       ),
                       AppSpacing.v4,
                       Text(
-                        'Rincian evaluasi 6 kriteria berbasis aturan (Rule-Based Scoring). Akumulasi kontribusi kriteria tepat 100%.',
+                        isRoutineMode
+                            ? 'Persentase kecocokan formula produk dengan jenis kulit, aktivitas harian, dan preferensi yang Anda pilih.'
+                            : 'Persentase kecocokan formula produk dengan kondisi proteksi UV hari ini, profil kulit, dan aktivitas Anda.',
                         style: context.text.bodySmall?.copyWith(
                           color: context.colors.outline,
                           height: 1.4,
@@ -334,7 +376,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           ),
           AppSpacing.v20,
 
-          // ── Mini stacked bar (visual ikhtisar 6 kriteria) ─────────
+          // ── Mini stacked bar (visual ikhtisar 5 kriteria) ─────────
           ClipRRect(
             borderRadius: AppRadius.br8,
             child: SizedBox(
@@ -354,7 +396,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
 
           // ── Label Seksi ─────────────────────────────────
           Text(
-            'KONTRIBUSI 6 KRITERIA TERBOBOT',
+            'RINCIAN FAKTOR KECOCOKAN',
             style: context.text.labelSmall?.copyWith(
               color: context.colors.outline,
               fontWeight: FontWeight.bold,
@@ -363,13 +405,12 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           ),
           AppSpacing.v12,
 
-          // ── Daftar 6 Kriteria ──────────────────────────────
+          // ── Daftar Kriteria ──────────────────────────────
           for (int i = 0; i < criteria.length; i++) ...[
             _buildBreakdownItem(
               context: context,
               icon: criteria[i].icon,
               iconColor: criteria[i].color,
-              code: criteria[i].code,
               title: criteria[i].label,
               weight: criteria[i].weight,
               rawScore: criteria[i].score,
@@ -386,7 +427,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           AppSpacing.v12,
 
           // ── Info Tambahan ────────────────────────────────
-          if (widget.spf != null || widget.paGrade != null) ...[
+          if (!isRoutineMode && (widget.spf != null || widget.paGrade != null)) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -405,23 +446,25 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
             ),
             AppSpacing.v8,
           ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Waktu Penggunaan',
-                style: context.text.labelLarge?.copyWith(
-                    color: context.colors.outline),
-              ),
-              Text(
-                _formatUsageTime(widget.usageTime),
-                style: context.text.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.onSurface),
-              ),
-            ],
-          ),
-          AppSpacing.v8,
+          if (!isRoutineMode) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Waktu Penggunaan',
+                  style: context.text.labelLarge?.copyWith(
+                      color: context.colors.outline),
+                ),
+                Text(
+                  _formatUsageTime(widget.usageTime),
+                  style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: context.colors.onSurface),
+                ),
+              ],
+            ),
+            AppSpacing.v8,
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -469,7 +512,6 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     required BuildContext context,
     required dynamic icon,
     required Color iconColor,
-    required String code,
     required String title,
     required String weight,
     required double rawScore,
@@ -507,7 +549,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: '$code · $title ',
+                            text: '$title ',
                             style: context.text.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: context.colors.onSurface,

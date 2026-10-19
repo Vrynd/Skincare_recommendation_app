@@ -199,6 +199,8 @@ class RecommendationService {
           .select('''
             recommendation_session_id,
             recommendation_code,
+            activity,
+            texture_preference,
             usage_time_preference,
             finish_preference,
             allergy_status,

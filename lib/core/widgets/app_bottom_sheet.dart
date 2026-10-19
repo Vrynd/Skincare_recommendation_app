@@ -64,10 +64,15 @@ class AppBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final defaultMaxHeight = MediaQuery.of(context).size.height * 0.82;
+
     return AppContainer(
       color: backgroundColor ?? context.colors.surfaceContainerLowest,
       width: double.infinity,
       height: height,
+      constraints: BoxConstraints(
+        maxHeight: height ?? defaultMaxHeight,
+      ),
       opacity: 1.0,
       showBorder: false,
       showShadow: false,

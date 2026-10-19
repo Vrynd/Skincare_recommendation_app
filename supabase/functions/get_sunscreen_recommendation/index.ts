@@ -10,6 +10,7 @@ import {
 } from "./scoring.ts";
 import {
   TARGET_ROUTINE,
+  WEIGHTS,
 } from "./constants.ts";
 import {
   validateRequestBody,
@@ -154,7 +155,8 @@ Deno.serve(async (req) => {
         .filter(Boolean) || [];
 
       // ─────────────────────────────────────
-      // MODE 1: REKOMENDASI RUTIN (Standar Tropis SPF 30 PA+++)
+      // MODE 1: REKOMENDASI PRODUK (5 Kriteria Aktif: C2, C3, C4, C5, C6)
+      // Mengabaikan C1 (Proteksi UV), dinormalisasi dengan total bobot aktif 0.75
       // ─────────────────────────────────────
       const evalRoutine = evaluateProduct(
         product,
@@ -163,10 +165,11 @@ Deno.serve(async (req) => {
         body.activity,
         body.texture_preference,
         body.finish_preference,
-        TARGET_ROUTINE.spf,
-        TARGET_ROUTINE.pa,
+        null,
+        null,
         productSkinCodes,
-        productConcernCodes
+        productConcernCodes,
+        'routine'
       );
 
       if (evalRoutine.isEligible) {
@@ -178,19 +181,22 @@ Deno.serve(async (req) => {
       }
 
       // ─────────────────────────────────────
-      // MODE 2: REKOMENDASI HARI INI (Sesuai Indeks UV Cuaca Open-Meteo)
+      // MODE 2: REKOMENDASI HARI INI (5 Kriteria Aktif: C1, C2, C3, C4, C6)
+      // Mengabaikan C5 (Tekstur), C1 dihitung berdasarkan target UV cuaca Open-Meteo,
+      // dinormalisasi dengan total bobot aktif 0.90
       // ─────────────────────────────────────
       const evalToday = evaluateProduct(
         product,
         userSkinCode,
         userConcernCodes,
         body.activity,
-        body.texture_preference,
+        null,
         body.finish_preference,
         spfMinimum,
         paMinimum,
         productSkinCodes,
-        productConcernCodes
+        productConcernCodes,
+        'today'
       );
 
       if (evalToday.isEligible) {
@@ -224,8 +230,9 @@ Deno.serve(async (req) => {
     }
 
     // Helper formatter untuk output produk
-    const formatProductOutput = (item: any) => ({
+    const formatProductOutput = (item: any, mode: 'routine' | 'today') => ({
       rank_position: item.rank_position,
+      mode: mode,
       product_id: item.product.product_id,
       product_code: item.product.product_code,
       brand_name: item.product.brand_name,
@@ -238,27 +245,37 @@ Deno.serve(async (req) => {
       finish: item.product.finish,
       match_score: item.eval.finalScore,
       recommendation_category: item.eval.category,
-      // 6 Nilai Kecocokan Kriteria (s_ij)
-      s_uv: item.eval.s_uv,
+      // Nilai Derajat Kecocokan Kriteria (s_ij)
+      s_uv: mode === 'today' ? item.eval.s_uv : 0,
       s_skin: item.eval.s_skin,
       s_activity: item.eval.s_activity,
       s_concern: item.eval.s_concern,
-      s_texture: item.eval.s_texture,
+      s_texture: mode === 'routine' ? item.eval.s_texture : 0,
       s_finish: item.eval.s_finish,
       // Persentase Kontribusi Relatif K_ij (Persamaan 2 - Total 100%)
       contributions: item.eval.contributions,
-      // Skor Poin Terbobot (Kompatibilitas Tampilan Lama)
-      uv_score: Math.round(item.eval.s_uv * 25),
-      skin_type_score: Math.round(item.eval.s_skin * 25),
-      activity_score: Math.round(item.eval.s_activity * 20),
-      skin_concern_score: Math.round(item.eval.s_concern * 10),
-      texture_score: Math.round(item.eval.s_texture * 10),
-      finish_score: Math.round(item.eval.s_finish * 10),
+      // Skor Kriteria Terbobot
+      uv_score: mode === 'today' ? Math.round(item.eval.s_uv * (WEIGHTS.uv / 0.90) * 100) : 0,
+      skin_type_score: mode === 'routine'
+        ? Math.round(item.eval.s_skin * (WEIGHTS.skinType / 0.75) * 100)
+        : Math.round(item.eval.s_skin * (WEIGHTS.skinType / 0.90) * 100),
+      activity_score: mode === 'routine'
+        ? Math.round(item.eval.s_activity * (WEIGHTS.activity / 0.75) * 100)
+        : Math.round(item.eval.s_activity * (WEIGHTS.activity / 0.90) * 100),
+      skin_concern_score: mode === 'routine'
+        ? Math.round(item.eval.s_concern * (WEIGHTS.skinConcern / 0.75) * 100)
+        : Math.round(item.eval.s_concern * (WEIGHTS.skinConcern / 0.90) * 100),
+      texture_score: mode === 'routine'
+        ? Math.round(item.eval.s_texture * (WEIGHTS.texture / 0.75) * 100)
+        : 0,
+      finish_score: mode === 'routine'
+        ? Math.round(item.eval.s_finish * (WEIGHTS.finish / 0.75) * 100)
+        : Math.round(item.eval.s_finish * (WEIGHTS.finish / 0.90) * 100),
       penalty: 0,
     });
 
-    const routineFormatted = topRoutine.map(formatProductOutput);
-    const todayFormatted = topToday.map(formatProductOutput);
+    const routineFormatted = topRoutine.map(item => formatProductOutput(item, 'routine'));
+    const todayFormatted = topToday.map(item => formatProductOutput(item, 'today'));
 
     // Primary results to save in DB transaction (prioritaskan today, fallback ke routine)
     const primaryForTransaction = topToday.length > 0 ? topToday : topRoutine;

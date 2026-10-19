@@ -9,6 +9,7 @@ import 'package:recommendation_app/core/widgets/app_dock_sheet.dart';
 import 'package:recommendation_app/core/widgets/app_navigation.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_snackbar.dart';
+import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/features/auth/provider/auth_provider.dart';
 import 'package:recommendation_app/features/history/provider/history_provider.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
@@ -86,8 +87,8 @@ class _CreateRecommendationScreenState
 
     final locationProvider = context.read<HomeLocationProvider>();
 
-    // Guard: jika GPS sedang dimuat, tunda submit
-    if (locationProvider.isLoading) {
+    // Guard: jika GPS sedang dimuat, tunda submit HANYA jika di mode Proteksi Hari Ini
+    if (formProvider.isTodayMode && locationProvider.isLoading) {
       AppSnackBar.showError(
         context,
         'Menunggu data lokasi GPS... Coba lagi sebentar.',
@@ -117,6 +118,9 @@ class _CreateRecommendationScreenState
 
     if (!mounted) return;
     if (sessionId != null) {
+      // Sinkronkan mode aktif di RecommendationProvider agar Result Screen membuka tab yang sesuai
+      provider.setSelectedModeIndex(formProvider.selectedModeIndex);
+
       // Perbarui riwayat rekomendasi di HistoryProvider agar langsung muncul
       if (mounted) {
         context.read<HistoryProvider>().loadHistory(userId);
@@ -136,6 +140,110 @@ class _CreateRecommendationScreenState
         provider.errorMessage ?? 'Gagal menyimpan rekomendasi.',
       );
     }
+  }
+
+  Widget _buildModeTabSelector(
+      BuildContext context, RecommendationFormProvider formProvider) {
+    final selectedIndex = formProvider.selectedModeIndex;
+
+    return Container(
+      height: 52,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: context.colors.surfaceContainerHigh.withValues(alpha: 0.8),
+        ),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => formProvider.setSelectedModeIndex(0),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  color: selectedIndex == 0
+                      ? context.colors.primary.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedDroplet,
+                      color: selectedIndex == 0
+                          ? context.colors.primary
+                          : context.colors.outline,
+                      size: 18,
+                    ),
+                    AppSpacing.h8,
+                    Text(
+                      'Rekomendasi Produk',
+                      style: context.text.bodyMedium!.copyWith(
+                        fontWeight: selectedIndex == 0
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: selectedIndex == 0
+                            ? context.colors.primary
+                            : context.colors.onSurface.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => formProvider.setSelectedModeIndex(1),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  color: selectedIndex == 1
+                      ? context.colors.primary.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedSun02,
+                      color: selectedIndex == 1
+                          ? context.colors.primary
+                          : context.colors.outline,
+                      size: 18,
+                    ),
+                    AppSpacing.h8,
+                    Text(
+                      'Hari Ini',
+                      style: context.text.bodyMedium!.copyWith(
+                        fontWeight: selectedIndex == 1
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: selectedIndex == 1
+                            ? context.colors.primary
+                            : context.colors.onSurface.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -184,22 +292,32 @@ class _CreateRecommendationScreenState
         child: ListView(
           controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          children: const [
-            RecommendationForm(),
+          children: [
+            _buildModeTabSelector(context, formProvider),
+            AppSpacing.v16,
+            const RecommendationForm(),
           ],
         ),
       ),
       bottomNavigationBar: AppDockSheet(
         title: 'Yakin data sudah benar?',
-        description: 'Pastikan semua inputan formulir terisi dengan valid.',
-        buttonTitle: 'Buat Rekomendasi',
+        description: formProvider.isRoutineMode
+            ? 'Pastikan preferensi pencarian rekomendasi produk terisi dengan valid.'
+            : 'Pastikan data aktivitas dan preferensi hari ini sudah sesuai.',
+        buttonTitle: formProvider.isRoutineMode
+            ? 'Cari Rekomendasi'
+            : 'Dapatkan Rekomendasi Hari Ini',
         switchValue: formProvider.isConfirmed,
         isButtonLoading: provider.isSubmitting,
         onSwitchChanged: (value) {
           if (!formProvider.isFormValid) {
             AppSnackBar.showError(
               context,
-              'Silakan lengkapi semua pilihan formulir terlebih dahulu.',
+              formProvider.isTodayMode &&
+                      formProvider.isNight &&
+                      formProvider.selectedUsageTime == null
+                  ? 'Silakan pilih waktu penggunaan sunscreen terlebih dahulu.'
+                  : 'Silakan lengkapi semua pilihan formulir terlebih dahulu.',
             );
             return;
           }

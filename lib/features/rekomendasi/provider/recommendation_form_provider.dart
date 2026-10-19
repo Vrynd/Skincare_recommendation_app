@@ -5,6 +5,9 @@ import 'package:recommendation_app/features/home/provider/home_location_provider
 import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
 
 class RecommendationFormProvider extends ChangeNotifier {
+  // Mode Formulir: 0 = Rekomendasi Rutin, 1 = Proteksi Hari Ini
+  int _selectedModeIndex = 0;
+
   SkinTypeModel? _selectedSkinType;
   List<SkinConcernModel> _selectedSkinProblems = [];
   String? _selectedActivity;
@@ -19,6 +22,19 @@ class RecommendationFormProvider extends ChangeNotifier {
   double? _longitude;
   double? _uvIndex;
   String? _uvRiskLevel;
+
+  // Getters Mode Formulir
+  int get selectedModeIndex => _selectedModeIndex;
+  bool get isRoutineMode => _selectedModeIndex == 0;
+  bool get isTodayMode => _selectedModeIndex == 1;
+
+  void setSelectedModeIndex(int index) {
+    if (_selectedModeIndex != index) {
+      _selectedModeIndex = index;
+      _isConfirmed = false;
+      notifyListeners();
+    }
+  }
 
   SkinTypeModel? get selectedSkinType => _selectedSkinType;
   List<SkinConcernModel> get selectedSkinProblems => _selectedSkinProblems;
@@ -121,10 +137,13 @@ class RecommendationFormProvider extends ChangeNotifier {
     // Set ke null jika statusnya masih berupa placeholder pencarian awal atau gagal
     final isSearching =
         address == 'Mencari lokasi...' || address == 'Gagal memuat lokasi';
-    _locationName = isSearching ? null : address;
+    _locationName = isSearching
+        ? (isRoutineMode ? 'Indonesia (Rutin Harian)' : null)
+        : address;
 
-    _latitude = position?.latitude;
-    _longitude = position?.longitude;
+    // Koordinat fallback default tropis jika di mode rutin dan GPS belum tersedia
+    _latitude = position?.latitude ?? (isRoutineMode ? -6.2088 : null);
+    _longitude = position?.longitude ?? (isRoutineMode ? 106.8456 : null);
     _uvIndex = locationProvider.uvIndex;
 
     // Memetakan tingkat risiko UV dari enum model ke string enum database
@@ -206,10 +225,10 @@ class RecommendationFormProvider extends ChangeNotifier {
     if (_selectedFinish == null) return null;
     return switch (_selectedFinish) {
       'Matte' =>
-        'Hasil akhir bebas kilap yang mengontrol minyak berlebih, membuat wajah tampak bebas minyak sepanjang hari. Sangat cocok untuk kulit berminyak.',
-      'Dewy / Glowy' =>
-        'Hasil akhir berkilau sehat (dewy/glowy) yang memberikan efek kulit lembap, kenyal, dan tampak basah alami. Sangat cocok untuk kulit kering.',
-      'Natural / Satin' =>
+        'Hasil akhir bebas kilap yang mengontrol minyak berlebih, membuat wajah tampak segar sepanjang hari. Sangat cocok untuk kulit berminyak.',
+      'Dewy' || 'Dewy / Glowy' =>
+        'Hasil akhir berkilau sehat yang memberikan efek kulit lembap, kenyal, dan tampak bercahaya alami. Sangat cocok untuk kulit kering.',
+      'Natural' || 'Natural / Satin' =>
         'Hasil akhir seimbang yang meniru kilau alami kulit sehat, tidak terlalu mengkilap dan tidak terlalu kering. Sangat ideal untuk kulit normal atau kombinasi.',
       'Tone-Up' =>
         'Hasil akhir mencerahkan seketika (tone-up) secara natural untuk membantu menyamarkan warna kulit yang kusam dan memberikan efek segar.',
@@ -219,39 +238,43 @@ class RecommendationFormProvider extends ChangeNotifier {
 
   /// Memetakan aktivitas ke nilai database
   String get mappedActivity => switch (_selectedActivity) {
-    'Dalam Ruangan (Indoor)' => 'indoor',
-    'Luar Ruangan Ringan' => 'outdoor_light',
+    'Di Dalam Ruangan' || 'Dalam Ruangan (Indoor)' => 'indoor',
+    'Di Luar Ruangan' || 'Luar Ruangan Ringan' => 'outdoor_light',
     'Luar Ruangan Intens' => 'outdoor_intense',
-    'Olahraga / Sport' => 'sport',
-    'Berenang / Aktivitas Air' => 'swim',
+    'Olahraga' || 'Olahraga / Sport' => 'sport',
+    'Berenang' || 'Berenang / Aktivitas Air' => 'swim',
     _ => 'indoor',
   };
 
-  /// Memetakan tekstur ke nilai database
-  String? get mappedTexture => switch (_selectedTexture) {
-    'Gel' => 'gel',
-    'Cream' => 'cream',
-    'Lotion' => 'lotion',
-    'Serum' => 'serum',
-    'Milk' => 'milk',
-    'Watery' => 'watery',
-    'Stick' => 'stick',
-    'Spray' => 'spray',
-    'Mist' => 'mist',
-    _ => null,
-  };
+  /// Memetakan tekstur ke nilai database (Mode Hari Ini tidak menggunakan preferensi tekstur)
+  String? get mappedTexture {
+    if (isTodayMode) return null;
+    return switch (_selectedTexture) {
+      'Gel' => 'gel',
+      'Cream' => 'cream',
+      'Lotion' => 'lotion',
+      'Serum' => 'serum',
+      'Milk' => 'milk',
+      'Watery' => 'watery',
+      'Stick' => 'stick',
+      'Spray' => 'spray',
+      'Mist' => 'mist',
+      _ => null,
+    };
+  }
 
   /// Memetakan hasil akhir ke format enum database
   String? get mappedFinish => switch (_selectedFinish) {
     'Matte' => 'matte',
-    'Dewy / Glowy' => 'dewy',
-    'Natural / Satin' => 'natural',
+    'Dewy' || 'Dewy / Glowy' => 'dewy',
+    'Natural' || 'Natural / Satin' => 'natural',
     'Tone-Up' => 'tone_up',
     _ => null,
   };
 
   /// Memetakan label waktu penggunaan ke format enum database Supabase
   String get mappedUsageTime {
+    if (isRoutineMode) return 'realtime';
     if (!isNight) return 'realtime';
     return switch (_selectedUsageTime) {
       'Pagi Hari' => 'morning',
@@ -265,13 +288,26 @@ class RecommendationFormProvider extends ChangeNotifier {
   String get mappedAllergyStatus => 'none';
 
   bool get isFormValid {
-    final requiresUsageTime = isNight;
-    final hasInvalidUsageTime = requiresUsageTime && _selectedUsageTime == null;
+    // Mode Rekomendasi Produk: Jenis Kulit, Aktivitas, Tekstur, Finish
+    if (isRoutineMode) {
+      return _selectedSkinType != null &&
+          _selectedActivity != null &&
+          _selectedTexture != null &&
+          _selectedFinish != null;
+    }
 
-    return _selectedSkinType != null &&
-        _selectedActivity != null &&
-        _selectedTexture != null &&
-        _selectedFinish != null &&
-        !hasInvalidUsageTime;
+    // Mode Hari Ini: Aktivitas, Jenis Kulit, Finish (Tekstur tidak digunakan)
+    final todayValid = _selectedActivity != null &&
+        _selectedSkinType != null &&
+        _selectedFinish != null;
+
+    if (!todayValid) return false;
+
+    // Mode Hari Ini pada malam hari: memerlukan pilihan waktu penggunaan esok hari
+    if (isNight && _selectedUsageTime == null) {
+      return false;
+    }
+
+    return true;
   }
 }

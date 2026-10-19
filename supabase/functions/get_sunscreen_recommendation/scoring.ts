@@ -1,10 +1,13 @@
-import { WEIGHTS, TEXTURE_GROUPS, FINISH_NEIGHBORS } from "./constants.ts";
+import { WEIGHTS, ACTIVE_WEIGHT_SUM, TEXTURE_GROUPS, FINISH_NEIGHBORS } from "./constants.ts";
 import { comparePaGrade } from "./utils.ts";
 
 
 /**
  * C1: Evaluasi Derajat Kecocokan Proteksi UV (s_i1)
- * Nilai: 1.0 jika SPF dan PA memenuhi target; 0.0 jika salah satu atau keduanya tidak memenuhi
+ * Nilai:
+ * - 1.0 jika SPF dan PA memenuhi target perlindungan UV
+ * - 0.5 jika hanya salah satu (SPF atau PA) yang memenuhi target
+ * - 0.0 jika keduanya tidak memenuhi target
  */
 export function calculateUvProtectionScore(
   productSpf: number,
@@ -14,7 +17,13 @@ export function calculateUvProtectionScore(
 ): number {
   const isSpfMet = productSpf >= targetSpf;
   const isPaMet = comparePaGrade(productPa, targetPa);
-  return (isSpfMet && isPaMet) ? 1.0 : 0.0;
+  if (isSpfMet && isPaMet) {
+    return 1.0;
+  }
+  if (isSpfMet || isPaMet) {
+    return 0.5;
+  }
+  return 0.0;
 }
 
 /**
@@ -41,20 +50,27 @@ export function calculateSkinTypeScore(
 /**
  * C3: Evaluasi Derajat Kecocokan Aktivitas Harian (s_i3)
  * Nilai:
- * - 1.0 untuk indoor & outdoor ringan (tanpa syarat ketahanan air)
+ * - 1.0 untuk aktivitas dalam ruangan (indoor, tanpa syarat ketahanan air)
+ * - 1.0 untuk outdoor ringan jika produk water-resistant; 0.5 jika tanpa klaim water-resistant
  * - 1.0 untuk outdoor intensif & olahraga JIKA produk water-resistant; 0.0 jika tidak
- * - Untuk renang: 1.0 jika very water-resistant; 0.5 jika water-resistant biasa; 0.0 jika tidak
+ * - Untuk renang: 1.0 jika very water-resistant (80 menit); 0.5 jika water-resistant (40 menit); 0.0 jika tidak
  */
 export function calculateActivityScore(
   activity: string,
   product: { is_water_resistant?: boolean; is_very_water_resistant?: boolean }
 ): number {
-  if (activity === 'indoor' || activity === 'outdoor_light') {
+  const isWaterResistant = product.is_water_resistant === true || product.is_very_water_resistant === true;
+
+  if (activity === 'indoor') {
     return 1.0;
   }
 
+  if (activity === 'outdoor_light') {
+    return isWaterResistant ? 1.0 : 0.5;
+  }
+
   if (activity === 'outdoor_intense' || activity === 'sport') {
-    return (product.is_water_resistant || product.is_very_water_resistant) ? 1.0 : 0.0;
+    return isWaterResistant ? 1.0 : 0.0;
   }
 
   if (activity === 'swim') {
@@ -192,7 +208,15 @@ export interface EvaluationResult {
 }
 
 /**
- * Evaluasi Lengkap 5 Langkah untuk Satu Produk
+ * Evaluasi Lengkap 5 Langkah untuk Satu Alternatif Produk Sunscreen (Dual-Mode Dynamic Scoring)
+ *
+ * - Mode 'routine' (Rekomendasi Produk):
+ *   Kriteria aktif: C2 (Jenis Kulit), C3 (Aktivitas), C4 (Masalah Kulit), C5 (Tekstur), C6 (Hasil Akhir)
+ *   Total bobot aktif = 0.75. Normalisasi dinamis: weightedSum = rawSum / 0.75.
+ *
+ * - Mode 'today' (Rekomendasi Hari Ini):
+ *   Kriteria aktif: C1 (Proteksi UV cuaca), C2 (Jenis Kulit), C3 (Aktivitas), C4 (Masalah Kulit), C6 (Hasil Akhir)
+ *   Total bobot aktif = 0.90. Normalisasi dinamis: weightedSum = rawSum / 0.90.
  */
 export function evaluateProduct(
   product: any,
@@ -201,30 +225,46 @@ export function evaluateProduct(
   activity: string,
   texturePreference: string | null,
   finishPreference: string | null,
-  targetSpf: number,
-  targetPa: string,
+  targetSpf: number | null,
+  targetPa: string | null,
   productSkinCodes: string[],
-  productConcernCodes: string[]
+  productConcernCodes: string[],
+  mode: 'routine' | 'today' = 'routine'
 ): EvaluationResult {
-  // 1. Hitung s_ij untuk keenam kriteria
-  const s_uv = calculateUvProtectionScore(product.spf, product.pa_grade, targetSpf, targetPa);
+  const isRoutine = mode === 'routine';
+
+  // 1. Hitung s_ij untuk kriteria sesuai konteks rekomendasi
+  const s_uv = (!isRoutine && targetSpf != null && targetPa != null)
+    ? calculateUvProtectionScore(product.spf, product.pa_grade, targetSpf, targetPa)
+    : 0.0;
   const s_skin = calculateSkinTypeScore(userSkinCode, productSkinCodes);
   const s_activity = calculateActivityScore(activity, product);
   const s_concern = calculateSkinConcernScore(userConcernCodes, productConcernCodes, product);
-  const s_texture = calculateTextureScore(texturePreference, product.texture);
+  const s_texture = isRoutine
+    ? calculateTextureScore(texturePreference, product.texture)
+    : 0.0;
   const s_finish = calculateFinishScore(finishPreference, product.finish);
 
-  // 2. Perhitungan Skor Akhir Terbobot: Final Score = 100 * sum(w_j * s_ij)
-  const weightedSum =
-    WEIGHTS.uv * s_uv +
-    WEIGHTS.skinType * s_skin +
-    WEIGHTS.activity * s_activity +
-    WEIGHTS.skinConcern * s_concern +
-    WEIGHTS.texture * s_texture +
-    WEIGHTS.finish * s_finish;
+  // 2. Perhitungan Skor Akhir Terbobot Dinamis:
+  // Mode Rekomendasi Produk: C2-C6 (sum bobot = 0.75)
+  // Mode Hari Ini: C1-C4, C6 (sum bobot = 0.90)
+  const activeWeightSum = isRoutine ? ACTIVE_WEIGHT_SUM.routine : ACTIVE_WEIGHT_SUM.today;
 
-  // Konversi ke skala 0 - 100 (dibulatkan ke integer)
-  const finalScore = Math.round(weightedSum * 100);
+  const rawWeightedSum = isRoutine
+    ? (WEIGHTS.skinType * s_skin +
+       WEIGHTS.activity * s_activity +
+       WEIGHTS.skinConcern * s_concern +
+       WEIGHTS.texture * s_texture +
+       WEIGHTS.finish * s_finish)
+    : (WEIGHTS.uv * s_uv +
+       WEIGHTS.skinType * s_skin +
+       WEIGHTS.activity * s_activity +
+       WEIGHTS.skinConcern * s_concern +
+       WEIGHTS.finish * s_finish);
+
+  // Normalisasi skor terbobot ke skala 0 - 100
+  const normalizedWeightedSum = rawWeightedSum / activeWeightSum;
+  const finalScore = Math.round(normalizedWeightedSum * 100);
 
   // 3. Kategori Kesesuaian (Tabel 4)
   let category: EvaluationResult['category'] = 'not_suitable';
@@ -236,10 +276,11 @@ export function evaluateProduct(
     category = 'fairly_suitable';
   }
 
-  // 4. Seleksi Kelayakan Kandidat (Langkah 5): Skor Akhir >= 40 (Kategori Cukup Sesuai ke atas)
+  // 4. Seleksi Kelayakan Kandidat: Skor Akhir >= 40 (Kategori Cukup Sesuai ke atas)
+  // TIDAK ADA HARD FILTER: Target UV hanya untuk pembobotan skor C1, bukan mengeliminasi produk
   const isEligible = finalScore >= 40;
 
-  // 5. Persentase Kontribusi Relatif K_ij (Persamaan 2)
+  // 5. Persentase Kontribusi Relatif K_ij (Persamaan 2 - Total 100% dari kriteria aktif)
   let contributions = {
     uv: 0,
     skinType: 0,
@@ -249,15 +290,26 @@ export function evaluateProduct(
     finish: 0,
   };
 
-  if (weightedSum > 0) {
-    contributions = {
-      uv: Math.round(((WEIGHTS.uv * s_uv) / weightedSum) * 1000) / 10,
-      skinType: Math.round(((WEIGHTS.skinType * s_skin) / weightedSum) * 1000) / 10,
-      activity: Math.round(((WEIGHTS.activity * s_activity) / weightedSum) * 1000) / 10,
-      skinConcern: Math.round(((WEIGHTS.skinConcern * s_concern) / weightedSum) * 1000) / 10,
-      texture: Math.round(((WEIGHTS.texture * s_texture) / weightedSum) * 1000) / 10,
-      finish: Math.round(((WEIGHTS.finish * s_finish) / weightedSum) * 1000) / 10,
-    };
+  if (rawWeightedSum > 0) {
+    if (isRoutine) {
+      contributions = {
+        uv: 0,
+        skinType: Math.round(((WEIGHTS.skinType * s_skin) / rawWeightedSum) * 1000) / 10,
+        activity: Math.round(((WEIGHTS.activity * s_activity) / rawWeightedSum) * 1000) / 10,
+        skinConcern: Math.round(((WEIGHTS.skinConcern * s_concern) / rawWeightedSum) * 1000) / 10,
+        texture: Math.round(((WEIGHTS.texture * s_texture) / rawWeightedSum) * 1000) / 10,
+        finish: Math.round(((WEIGHTS.finish * s_finish) / rawWeightedSum) * 1000) / 10,
+      };
+    } else {
+      contributions = {
+        uv: Math.round(((WEIGHTS.uv * s_uv) / rawWeightedSum) * 1000) / 10,
+        skinType: Math.round(((WEIGHTS.skinType * s_skin) / rawWeightedSum) * 1000) / 10,
+        activity: Math.round(((WEIGHTS.activity * s_activity) / rawWeightedSum) * 1000) / 10,
+        skinConcern: Math.round(((WEIGHTS.skinConcern * s_concern) / rawWeightedSum) * 1000) / 10,
+        texture: 0,
+        finish: Math.round(((WEIGHTS.finish * s_finish) / rawWeightedSum) * 1000) / 10,
+      };
+    }
   }
 
   return {
