@@ -58,6 +58,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _scrollOffset = 40.0;
         });
       }
+
+      // Deteksi lazy loading saat scroll mendekati bagian bawah list
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      if (currentScroll >= maxScroll - 200) {
+        final provider = context.read<HistoryProvider>();
+        if (provider.hasMore && !provider.isLoadingMore) {
+          provider.loadMoreHistory();
+        }
+      }
     }
   }
 
@@ -66,7 +76,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       title: 'Hapus Riwayat',
       description:
-          'Apakah Anda yakin ingin menghapus "${item.productName}" dari riwayat rekomendasi Anda?',
+          'Apakah Anda yakin ingin menghapus "${item.cleanProductName}" dari riwayat rekomendasi Anda?',
       confirmText: 'Ya, Hapus',
       isDanger: true,
       icon: HugeIcons.strokeRoundedDelete02,
@@ -135,7 +145,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             HistoryTile(
               time: item.formattedTime,
               label: item.brandName,
-              title: item.productName,
+              title: item.cleanProductName,
               onTap: () {},
               onTapMore: () => _tapToDelete(item),
             ),
@@ -144,6 +154,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
         }
         children.add(AppSpacing.v8);
       });
+
+      // Indikator loading saat memuat batch lazy loading berikutnya
+      if (provider.isLoadingMore) {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: context.colors.primary,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
     }
     return children;
   }
@@ -169,7 +198,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         },
         child: ListView(
           controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 48),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
           children: [
             AppSearchBar(
               controller: _searchController,

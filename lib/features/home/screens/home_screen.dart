@@ -24,6 +24,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
+  int _displayedCount = 8;
+  bool _isLoadingMore = false;
 
   @override
   void initState() {
@@ -55,6 +57,34 @@ class _HomeScreenState extends State<HomeScreen> {
           _scrollOffset = 40.0;
         });
       }
+
+      // Lazy loading trigger saat scroll mendekati batas bawah
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        _loadMoreProducts();
+      }
+    }
+  }
+
+  void _loadMoreProducts() {
+    final recommendation = context.read<RecommendationProvider>();
+    final location = context.read<HomeLocationProvider>();
+    final allProducts = recommendation.getSunscreensForUv(location.uvIndex);
+
+    if (!_isLoadingMore && _displayedCount < allProducts.length) {
+      setState(() {
+        _isLoadingMore = true;
+      });
+
+      // Micro-delay agar animasi indikator lazy loading berjalan mulus
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) {
+          setState(() {
+            _displayedCount = (_displayedCount + 4).clamp(0, allProducts.length);
+            _isLoadingMore = false;
+          });
+        }
+      });
     }
   }
 
@@ -71,13 +101,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget _buildHorizontalSunscreens(
+  Widget _buildProductGrid(
     List<Map<String, dynamic>> products,
     bool isLoading,
   ) {
-    if (isLoading) {
-      return const SizedBox(
-        height: 150,
+    if (isLoading && products.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -86,18 +116,43 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
-      height: 150,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: products.length,
-        separatorBuilder: (context, index) => AppSpacing.h16,
-        itemBuilder: (context, index) {
-          return HomeRecommendationCard(product: products[index], width: 250);
-        },
-      ),
+    final visibleProducts = products.take(_displayedCount).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: visibleProducts.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.15,
+            ),
+            itemBuilder: (context, index) {
+              return HomeRecommendationCard(product: visibleProducts[index]);
+            },
+          ),
+        ),
+        if (_isLoadingMore) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
+            child: Center(
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: context.colors.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -112,11 +167,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final location = context.watch<HomeLocationProvider>();
     final recommendation = context.watch<RecommendationProvider>();
 
-    // Ambil 3 rekomendasi sunscreen acak sesuai UV Indeks saat ini
-    final randomSunscreens = recommendation.getRandomSunscreensForUv(
-      location.uvIndex,
-      count: 3,
-    );
+    // Ambil daftar sunscreen yang diprioritaskan sesuai UV Indeks saat ini
+    final allSunscreens = recommendation.getSunscreensForUv(location.uvIndex);
 
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
@@ -127,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(top: 16, bottom: 48),
+          padding: const EdgeInsets.only(top: 16, bottom: 124),
           children: [
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
@@ -148,14 +200,14 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20),
               child: AppTitleAction.none(
-                title: 'Rekomendasi Hari Ini',
-                subtitle: 'Sunscreen pelindung terbaik untuk cuaca saat ini',
+                title: 'Daftar Produk',
+                subtitle: 'Koleksi sunscreen pilihan untuk perlindungan kulit harian Anda',
               ),
             ),
             AppSpacing.v16,
 
-            _buildHorizontalSunscreens(
-              randomSunscreens,
+            _buildProductGrid(
+              allSunscreens,
               recommendation.isLoading,
             ),
           ],

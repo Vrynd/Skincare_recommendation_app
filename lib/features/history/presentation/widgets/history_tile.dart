@@ -131,8 +131,11 @@ class HistoryTile extends StatelessWidget {
                     ),
                     Text(
                       title,
-                      style: context.text.titleLarge?.copyWith(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleMedium?.copyWith(
                         color: context.colors.onSurface,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],

@@ -75,6 +75,22 @@ class HistoryItem {
   }
 
 
+  /// Mengembalikan nama produk tanpa informasi SPF dan PA yang redundan
+  String get cleanProductName {
+    final regex = RegExp(
+      r'\s*(?:SPF\s*\d+\+?|\bPA\+{1,4}\b).*$',
+      caseSensitive: false,
+    );
+    final cleaned = productName.replaceAll(regex, '').trim();
+    return cleaned.isNotEmpty ? cleaned : productName;
+  }
+
+  static double _parseScore(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    return double.tryParse(val.toString()) ?? 0.0;
+  }
+
   /// Factory untuk membuat model dari data JSON hasil query Supabase
   factory HistoryItem.fromJson(Map<String, dynamic> json) {
     final products = json['products'] as Map<String, dynamic>? ?? {};
@@ -83,7 +99,7 @@ class HistoryItem {
     return HistoryItem(
       resultId: json['recommendation_result_id'] as String? ?? json['recommendation_result_id'] ?? '',
       sessionId: json['recommendation_session_id'] as String? ?? json['recommendation_session_id'] ?? '',
-      matchScore: (json['match_score'] as num? ?? 0.0).toDouble(),
+      matchScore: _parseScore(json['match_score']),
       recommendationCategory: json['recommendation_category'] as String? ?? '',
       rankPosition: json['rank_position'] as int? ?? 1,
       createdAt: DateTime.parse(json['created_at'] as String? ?? DateTime.now().toIso8601String()).toLocal(),

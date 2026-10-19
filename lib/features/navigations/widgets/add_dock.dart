@@ -15,6 +15,20 @@ class AddDock extends StatelessWidget {
       padding: const EdgeInsets.all(6),
       borderRadius: AppRadius.br32,
       showShadow: true,
+      customShadows: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.12),
+          blurRadius: 18,
+          spreadRadius: 1,
+          offset: const Offset(0, 8),
+        ),
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 6,
+          spreadRadius: 0,
+          offset: const Offset(0, 2),
+        ),
+      ],
       width: 64,
       height: 64,
       color: context.colors.surfaceContainerLowest,

@@ -322,5 +322,32 @@ class RecommendationProvider extends ChangeNotifier {
     final list = [...filtered]..shuffle();
     return list.take(count).toList();
   }
+
+  /// Mengambil semua produk sunscreen aktif yang diprioritaskan sesuai indeks UV terkini
+  List<Map<String, dynamic>> getSunscreensForUv(double uvIndex) {
+    if (_dbSunscreens.isEmpty) return [];
+
+    final highProtection = <Map<String, dynamic>>[];
+    final regularProtection = <Map<String, dynamic>>[];
+
+    for (final p in _dbSunscreens) {
+      final spf = p['spf'] as int? ?? 30;
+      if (uvIndex > 2.0) {
+        if (spf >= 45) {
+          highProtection.add(p);
+        } else {
+          regularProtection.add(p);
+        }
+      } else {
+        if (spf >= 30 && spf <= 50) {
+          highProtection.add(p);
+        } else {
+          regularProtection.add(p);
+        }
+      }
+    }
+
+    return [...highProtection, ...regularProtection];
+  }
 }
 

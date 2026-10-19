@@ -27,7 +27,7 @@ class NavigationScreen extends StatelessWidget {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 50,
+            bottom: 38,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: 12,

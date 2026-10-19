@@ -10,8 +10,14 @@ class HistoryProvider extends ChangeNotifier {
   String? _errorMessage;
   String _searchQuery = '';
 
+  int _displayedCount = 8;
+  bool _isLoadingMore = false;
+
   // Getters
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _displayedCount < historyItems.length;
+  int get displayedCount => _displayedCount;
   String? get errorMessage => _errorMessage;
   String get searchQuery => _searchQuery;
 
@@ -26,18 +32,31 @@ class HistoryProvider extends ChangeNotifier {
     }).toList();
   }
 
-  /// Mengembalikan total riwayat secara keseluruhan (unfiltered)
-  String get totalHistory => _historyItems.length.toString();
+  /// Mengembalikan list item yang ditampilkan sesuai batas lazy loading
+  List<HistoryItem> get displayedHistoryItems {
+    final items = historyItems;
+    if (_displayedCount >= items.length) {
+      return items;
+    }
+    return items.take(_displayedCount).toList();
+  }
 
-  /// Mengembalikan rata-rata match score dari seluruh riwayat (unfiltered)
+  /// Mengembalikan total riwayat secara keseluruhan (atau hasil pencarian)
+  String get totalHistory {
+    final list = _searchQuery.isNotEmpty ? historyItems : _historyItems;
+    return list.length.toString();
+  }
+
+  /// Mengembalikan rata-rata match score dari seluruh riwayat (atau hasil pencarian)
   String get averageMatch {
-    if (_historyItems.isEmpty) return '0%';
-    final sum = _historyItems.fold<double>(0.0, (acc, item) => acc + item.matchScore);
-    final avg = sum / _historyItems.length;
+    final list = _searchQuery.isNotEmpty ? historyItems : _historyItems;
+    if (list.isEmpty) return '0%';
+    final sum = list.fold<double>(0.0, (acc, item) => acc + item.matchScore);
+    final avg = sum / list.length;
     return '${avg.round()}%';
   }
 
-  /// Mengelompokkan riwayat berdasarkan Hari (Bahasa Indonesia)
+  /// Mengelompokkan riwayat yang sedang ditampilkan (lazy load) berdasarkan Hari (Bahasa Indonesia)
   Map<String, List<HistoryItem>> get groupedHistory {
     final Map<String, List<HistoryItem>> groups = {};
     
@@ -54,7 +73,7 @@ class HistoryProvider extends ChangeNotifier {
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
 
-    for (final item in historyItems) {
+    for (final item in displayedHistoryItems) {
       final date = item.createdAt;
       final localDate = DateTime(date.year, date.month, date.day);
       
@@ -78,10 +97,29 @@ class HistoryProvider extends ChangeNotifier {
     return groups;
   }
 
+  /// Memuat lebih banyak item riwayat (lazy loading +8 item)
+  Future<void> loadMoreHistory() async {
+    if (_isLoadingMore || !hasMore) return;
+    _isLoadingMore = true;
+    notifyListeners();
+
+    await Future.delayed(const Duration(milliseconds: 300));
+    _displayedCount += 8;
+    _isLoadingMore = false;
+    notifyListeners();
+  }
+
+  /// Reset batas tampilan ke 8 item awal
+  void resetPagination() {
+    _displayedCount = 8;
+    notifyListeners();
+  }
+
   /// Memuat riwayat rekomendasi dari database
   Future<void> loadHistory(String userId) async {
     _isLoading = true;
     _errorMessage = null;
+    _displayedCount = 8;
     notifyListeners();
 
     try {
@@ -111,6 +149,7 @@ class HistoryProvider extends ChangeNotifier {
   /// Mengatur kata kunci pencarian
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _displayedCount = 8;
     notifyListeners();
   }
 
