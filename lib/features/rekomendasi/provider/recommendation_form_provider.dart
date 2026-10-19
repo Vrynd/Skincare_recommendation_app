@@ -3,6 +3,7 @@ import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.d
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
+import 'package:recommendation_app/features/home/services/home_uv_service.dart';
 
 class RecommendationFormProvider extends ChangeNotifier {
   // Mode Formulir: 0 = Rekomendasi Rutin, 1 = Proteksi Hari Ini
@@ -23,10 +24,26 @@ class RecommendationFormProvider extends ChangeNotifier {
   double? _uvIndex;
   String? _uvRiskLevel;
 
+  // State Lokasi Khusus / Kustom (Mode Hari Ini untuk Kota Lain)
+  bool _isCustomLocation = false;
+  String? _customLocationName;
+  double? _customLatitude;
+  double? _customLongitude;
+  double? _customUvIndex;
+  String? _customUvRiskLevel;
+  bool _isLoadingCustomLocation = false;
+
   // Getters Mode Formulir
   int get selectedModeIndex => _selectedModeIndex;
   bool get isRoutineMode => _selectedModeIndex == 0;
   bool get isTodayMode => _selectedModeIndex == 1;
+
+  // Getters Lokasi Kustom
+  bool get isCustomLocation => _isCustomLocation;
+  String? get customLocationName => _customLocationName;
+  double? get customUvIndex => _customUvIndex;
+  String? get customUvRiskLevel => _customUvRiskLevel;
+  bool get isLoadingCustomLocation => _isLoadingCustomLocation;
 
   void setSelectedModeIndex(int index) {
     if (_selectedModeIndex != index) {
@@ -129,8 +146,71 @@ class RecommendationFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mengatur lokasi khusus (kota tujuan lain) untuk Mode Hari Ini
+  Future<void> setCustomLocation({
+    required String name,
+    required double latitude,
+    required double longitude,
+  }) async {
+    _isCustomLocation = true;
+    _customLocationName = name;
+    _customLatitude = latitude;
+    _customLongitude = longitude;
+    _locationName = name;
+    _latitude = latitude;
+    _longitude = longitude;
+    _isConfirmed = false;
+    _isLoadingCustomLocation = true;
+    notifyListeners();
+
+    try {
+      final uvData = await HomeUVService().fetchUVData(latitude, longitude);
+      if (uvData != null) {
+        _customUvIndex = uvData.uvIndex;
+        _uvIndex = uvData.uvIndex;
+        _customUvRiskLevel = switch (uvData.riskLevel) {
+          UVRiskLevel.low => 'low',
+          UVRiskLevel.moderate => 'moderate',
+          UVRiskLevel.high => 'high',
+          UVRiskLevel.veryHigh => 'very_high',
+          UVRiskLevel.extreme => 'extreme',
+        };
+        _uvRiskLevel = _customUvRiskLevel;
+      }
+    } catch (e) {
+      debugPrint('Error fetching UV for custom location: $e');
+    } finally {
+      _isLoadingCustomLocation = false;
+      notifyListeners();
+    }
+  }
+
+  /// Mengembalikan pilihan lokasi ke GPS saat ini
+  void resetToGpsLocation(HomeLocationProvider locationProvider) {
+    _isCustomLocation = false;
+    _customLocationName = null;
+    _customLatitude = null;
+    _customLongitude = null;
+    _customUvIndex = null;
+    _customUvRiskLevel = null;
+    _isLoadingCustomLocation = false;
+    updateLocationAndUv(locationProvider);
+    _isConfirmed = false;
+    notifyListeners();
+  }
+
   /// Menyalin dan memetakan data lokasi dan UV dari HomeLocationProvider ke dalam state formulir
   void updateLocationAndUv(HomeLocationProvider locationProvider) {
+    if (_isCustomLocation && _customLatitude != null && _customLongitude != null) {
+      _locationName = _customLocationName;
+      _latitude = _customLatitude;
+      _longitude = _customLongitude;
+      _uvIndex = _customUvIndex ?? locationProvider.uvIndex;
+      _uvRiskLevel = _customUvRiskLevel ?? 'moderate';
+      notifyListeners();
+      return;
+    }
+
     final position = locationProvider.currentPosition;
     final address = locationProvider.readableAddress;
 
@@ -174,6 +254,13 @@ class RecommendationFormProvider extends ChangeNotifier {
     _longitude = null;
     _uvIndex = null;
     _uvRiskLevel = null;
+    _isCustomLocation = false;
+    _customLocationName = null;
+    _customLatitude = null;
+    _customLongitude = null;
+    _customUvIndex = null;
+    _customUvRiskLevel = null;
+    _isLoadingCustomLocation = false;
 
     notifyListeners();
   }

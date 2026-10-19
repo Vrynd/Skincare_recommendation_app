@@ -87,13 +87,21 @@ class _CreateRecommendationScreenState
 
     final locationProvider = context.read<HomeLocationProvider>();
 
-    // Guard: jika GPS sedang dimuat, tunda submit HANYA jika di mode Proteksi Hari Ini
-    if (formProvider.isTodayMode && locationProvider.isLoading) {
-      AppSnackBar.showError(
-        context,
-        'Menunggu data lokasi GPS... Coba lagi sebentar.',
-      );
-      return;
+    // Guard: jika lokasi sedang dimuat, tunda submit HANYA jika di mode Proteksi Hari Ini
+    if (formProvider.isTodayMode) {
+      if (formProvider.isCustomLocation && formProvider.isLoadingCustomLocation) {
+        AppSnackBar.showError(
+          context,
+          'Sedang memuat data cuaca kota tujuan... Coba lagi sebentar.',
+        );
+        return;
+      } else if (!formProvider.isCustomLocation && locationProvider.isLoading) {
+        AppSnackBar.showError(
+          context,
+          'Menunggu data lokasi GPS... Coba lagi sebentar.',
+        );
+        return;
+      }
     }
 
     formProvider.updateLocationAndUv(locationProvider);

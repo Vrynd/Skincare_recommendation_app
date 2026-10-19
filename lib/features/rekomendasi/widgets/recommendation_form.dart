@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_container.dart';
 import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
+import 'package:recommendation_app/core/widgets/app_tile.dart';
+import 'package:recommendation_app/features/home/models/uv_risk_level.dart';
+import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
+import 'package:recommendation_app/features/rekomendasi/widgets/location_selector_sheet.dart';
 import 'package:recommendation_app/features/rekomendasi/widgets/single_choice.dart';
 import 'package:recommendation_app/features/rekomendasi/widgets/multiple_choice.dart';
 
@@ -46,6 +51,7 @@ class RecommendationForm extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<RecommendationProvider>();
     final formProvider = context.watch<RecommendationFormProvider>();
+    final locationProvider = context.watch<HomeLocationProvider>();
 
     final isRoutine = formProvider.isRoutineMode;
     final showUsageTimeForm = formProvider.isTodayMode && formProvider.isNight;
@@ -53,7 +59,13 @@ class RecommendationForm extends StatelessWidget {
     if (isRoutine) {
       return _buildRoutineForm(context, provider, formProvider);
     } else {
-      return _buildTodayForm(context, provider, formProvider, showUsageTimeForm);
+      return _buildTodayForm(
+        context,
+        provider,
+        formProvider,
+        locationProvider,
+        showUsageTimeForm,
+      );
     }
   }
 
@@ -171,6 +183,7 @@ class RecommendationForm extends StatelessWidget {
 
   /// Formulir Mode Hari Ini
   /// Urutan yang diutamakan:
+  /// 00 Lokasi Proteksi UV
   /// 01 Aktivitas apa?
   /// 02 Jenis kulit apa?
   /// 03 Memiliki masalah kulit atau tidak?
@@ -180,12 +193,17 @@ class RecommendationForm extends StatelessWidget {
     BuildContext context,
     RecommendationProvider provider,
     RecommendationFormProvider formProvider,
+    HomeLocationProvider locationProvider,
     bool showUsageTimeForm,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        // ── Lokasi Proteksi Hari Ini ─────────────────────────
+        _buildLocationCard(context, formProvider, locationProvider),
+        AppSpacing.v16,
+
         // 01: Aktivitas Hari Ini
         SingleChoice<String>(
           indexNumber: '01',
@@ -335,6 +353,98 @@ class RecommendationForm extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Komponen lokasi dan indeks UV untuk Mode Hari Ini.
+  /// Terdiri dari:
+  /// - 1 komponen tile untuk menampilkan lokasi saat ini dan aksi klik untuk memilih lokasi
+  /// - 2 grup komponen tile lainnya yang menyajikan kategori dan nilai indeks
+  /// Semuanya menggunakan komponen AppTile.
+  Widget _buildLocationCard(
+    BuildContext context,
+    RecommendationFormProvider formProvider,
+    HomeLocationProvider locationProvider,
+  ) {
+    final isCustom = formProvider.isCustomLocation;
+    final locationName = isCustom
+        ? (formProvider.customLocationName ?? 'Lokasi Pilihan')
+        : locationProvider.readableAddress;
+
+    final uvVal = isCustom
+        ? formProvider.customUvIndex
+        : locationProvider.uvIndex;
+
+    final riskLevel = uvVal != null ? UVRiskLevel.fromIndex(uvVal) : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── 1. Tile Lokasi Saat Ini (dengan aksi klik) ─────────────────
+        AppContainer.bordered(
+          borderRadius: AppRadius.br24,
+          padding: EdgeInsets.zero,
+          child: AppTile.modern(
+            icon: isCustom
+                ? HugeIcons.strokeRoundedLocation01
+                : HugeIcons.strokeRoundedGps01,
+            iconColor: context.colors.primary,
+            title: isCustom ? 'Lokasi Pilihan' : 'Lokasi Saat Ini',
+            subtitle: locationName,
+            onTap: () => LocationSelectorSheet.show(context),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          ),
+        ),
+        AppSpacing.v12,
+
+        // ── 2. Grup Tile Kategori & Nilai Indeks UV ────────────────────
+        AppContainer.bordered(
+          borderRadius: AppRadius.br24,
+          padding: EdgeInsets.zero,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppTile.modern(
+                icon: HugeIcons.strokeRoundedAlertCircle,
+                iconColor: riskLevel?.color ?? AppColors.accentOrange,
+                title: 'Kategori Risiko',
+                value: formProvider.isLoadingCustomLocation
+                    ? 'Memuat...'
+                    : (riskLevel?.name ?? '-'),
+                valueColor: riskLevel?.color,
+                trailing: formProvider.isLoadingCustomLocation
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                showDivider: true,
+              ),
+              AppTile.modern(
+                icon: HugeIcons.strokeRoundedSun02,
+                iconColor: AppColors.accentAmber,
+                title: 'Nilai Indeks UV',
+                value: formProvider.isLoadingCustomLocation
+                    ? 'Memuat...'
+                    : (uvVal != null ? uvVal.toStringAsFixed(1) : '-'),
+                valueColor: context.colors.onSurface,
+                trailing: formProvider.isLoadingCustomLocation
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                showDivider: false,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

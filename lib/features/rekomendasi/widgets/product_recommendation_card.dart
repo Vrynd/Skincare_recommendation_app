@@ -336,7 +336,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                           ),
                         ),
                         Text(
-                          'Poin',
+                          '%',
                           style: context.text.labelSmall?.copyWith(
                             color: brandColor.withValues(alpha: 0.8),
                             fontWeight: FontWeight.bold,
@@ -519,7 +519,9 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     double? matchDegree,
   }) {
     final displayPct = contributionPct.clamp(0.0, 100.0);
-    final barFill = (displayPct / 100).clamp(0.0, 1.0);
+    final barFill = (matchDegree != null)
+        ? matchDegree.clamp(0.0, 1.0)
+        : (displayPct / 100).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -566,7 +568,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                       ),
                     ),
                     Text(
-                      '${rawScore.toStringAsFixed(0)} poin (${displayPct.toStringAsFixed(1)}%)',
+                      '${displayPct.toStringAsFixed(1)}%',
                       style: context.text.labelMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: iconColor,

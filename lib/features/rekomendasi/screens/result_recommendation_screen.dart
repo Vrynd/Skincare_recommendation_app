@@ -228,15 +228,6 @@ class _ResultRecommendationScreenState
       'tone_up': 'Tone-Up',
     }[rawFinish?.toLowerCase()] ?? rawFinish ?? '-';
 
-    final rawUv = session['uv_index'] ?? provider.uvData?.uvIndex;
-    final uvStr = uvDisplay(
-      rawUv,
-      session['uv_risk_level'] as String? ?? provider.uvData?.uvRiskLevel,
-    );
-
-    final loc = session['location_name'] as String?;
-    final locDisplay = loc != null && loc.isNotEmpty ? loc : '-';
-
     return AppContainer.bordered(
       borderRadius: AppRadius.br24,
       padding: EdgeInsets.zero,
@@ -278,19 +269,6 @@ class _ResultRecommendationScreenState
                 ),
               ]
             : [
-                summaryItemTile(
-                  icon: HugeIcons.strokeRoundedLocation01,
-                  iconColor: AppColors.accentTeal,
-                  title: 'Lokasi Terkini',
-                  value: locDisplay,
-                  isEllipsis: true,
-                ),
-                summaryItemTile(
-                  icon: HugeIcons.strokeRoundedSun02,
-                  iconColor: AppColors.accentAmber,
-                  title: 'Indeks UV Cuaca',
-                  value: uvStr,
-                ),
                 summaryItemTile(
                   icon: HugeIcons.strokeRoundedActivity01,
                   iconColor: AppColors.accentBlue,
