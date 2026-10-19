@@ -86,18 +86,9 @@ export function validateRequestBody(body: any): ValidationResult {
 }
 
 export function validateUsageTimePreference(usageTimePref: any, isNight: boolean): ValidationResult {
-  if (isNight) {
-    if (!usageTimePref) {
-      return { error: "Waktu penggunaan sunscreen wajib dipilih saat malam hari" };
-    }
-
-    if (!['morning', 'afternoon', 'evening'].includes(usageTimePref)) {
-      return { error: "Waktu penggunaan sunscreen malam hari tidak valid (harus morning, afternoon, atau evening)" };
-    }
-  } else {
-    if (usageTimePref && !['realtime', 'morning', 'afternoon', 'evening'].includes(usageTimePref)) {
-      return { error: "Waktu penggunaan sunscreen tidak valid" };
-    }
+  const validPreferences = ['realtime', 'morning', 'afternoon', 'evening'];
+  if (usageTimePref && !validPreferences.includes(usageTimePref)) {
+    return { error: "Waktu penggunaan sunscreen tidak valid (harus realtime, morning, afternoon, atau evening)" };
   }
   return {};
 }

@@ -13,10 +13,12 @@ import 'package:recommendation_app/core/widgets/app_radius.dart';
 import 'package:recommendation_app/core/widgets/app_scaffold.dart';
 import 'package:recommendation_app/core/widgets/app_spacing.dart';
 import 'package:recommendation_app/core/widgets/app_title.dart';
+import 'package:recommendation_app/features/rekomendasi/models/recommendation_result_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_concern_model.dart';
 import 'package:recommendation_app/features/rekomendasi/models/skin_type_model.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/widgets/result_recommendation_helpers.dart';
+import 'package:recommendation_app/features/rekomendasi/widgets/user_owned_sunscreen_sheet.dart';
 
 class ResultRecommendationScreen extends StatefulWidget {
   final String sessionId;
@@ -31,6 +33,7 @@ class _ResultRecommendationScreenState
     extends State<ResultRecommendationScreen> {
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
+  SunscreenRecommendationItem? _selectedUserOwnedProduct;
 
   @override
   void initState() {
@@ -153,25 +156,22 @@ class _ResultRecommendationScreenState
                   height: 180,
                 )
               else ...[
-                const AppTitleAction.none(title: 'Rekomendasi Utama'),
+                const AppTitleAction.none(title: 'Rekomendasi Untuk Anda'),
                 AppSpacing.v12,
-                productCard(
-                  provider.activeModeResults.isNotEmpty
-                      ? provider.activeModeResults.first.toMap()
-                      : provider.currentSessionResults.first,
-                  isRoutine: isRoutine,
-                ),
-                if ((provider.activeModeResults.isNotEmpty
-                        ? provider.activeModeResults.length
-                        : provider.currentSessionResults.length) >
-                    1) ...[
+                ...(provider.activeModeResults.isNotEmpty
+                        ? provider.activeModeResults.take(3).map((e) => e.toMap())
+                        : provider.currentSessionResults.take(3))
+                    .map((item) => productCard(item, isRoutine: isRoutine)),
+                if (!isRoutine) ...[
                   AppSpacing.v24,
-                  const AppTitleAction.none(title: 'Rekomendasi Alternatif'),
-                  AppSpacing.v12,
-                  ...(provider.activeModeResults.isNotEmpty
-                          ? provider.activeModeResults.skip(1).map((e) => e.toMap())
-                          : provider.currentSessionResults.skip(1))
-                      .map((item) => productCard(item, isRoutine: isRoutine)),
+                  if (_selectedUserOwnedProduct != null)
+                    _buildSelectedUserOwnedProductSection(
+                      context,
+                      provider,
+                      isRoutine,
+                    )
+                  else
+                    _buildFeedbackPromptBanner(context, provider),
                 ],
               ],
             ],
@@ -298,6 +298,218 @@ class _ResultRecommendationScreenState
                 ),
               ],
       ),
+    );
+  }
+
+  void _openUserOwnedProductSheet(
+    BuildContext context,
+    RecommendationProvider provider,
+  ) {
+    final allCandidates = provider.activeModeResults.isNotEmpty
+        ? provider.activeModeResults
+        : provider.currentSessionResults
+            .map((m) => SunscreenRecommendationItem.fromJson(m))
+            .toList();
+
+    // Produk di luar 3 rekomendasi teratas (utama + 2 alternatif)
+    final otherCandidates = provider.activeModeResults.length > 3
+        ? provider.activeModeResults.skip(3).toList()
+        : (provider.currentSessionResults.length > 3
+            ? provider.currentSessionResults
+                .skip(3)
+                .map((m) => SunscreenRecommendationItem.fromJson(m))
+                .toList()
+            : allCandidates);
+
+    UserOwnedSunscreenSheet.show(
+      context: context,
+      otherCandidates: otherCandidates,
+      allCandidates: allCandidates,
+      onProductSelected: (product) {
+        setState(() {
+          _selectedUserOwnedProduct = product;
+        });
+      },
+    );
+  }
+
+  Widget _buildFeedbackPromptBanner(
+    BuildContext context,
+    RecommendationProvider provider,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Dari ke-3 produk yang direkomendasikan, apakah Anda memiliki salah satunya?',
+          style: context.text.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: context.colors.onSurface,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: () => _openUserOwnedProductSheet(context, provider),
+          borderRadius: BorderRadius.circular(4),
+          child: Text.rich(
+            TextSpan(
+              text: 'Jika tidak, ',
+              style: context.text.bodySmall?.copyWith(
+                color: context.colors.outline,
+                height: 1.5,
+              ),
+              children: [
+                TextSpan(
+                  text: 'cari dan pilih produk yang Anda miliki',
+                  style: TextStyle(
+                    color: context.colors.primary,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                    decorationColor: context.colors.primary,
+                  ),
+                ),
+                const TextSpan(
+                  text: ' di rumah untuk dihitung tingkat kecocokannya.',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedUserOwnedProductSection(
+    BuildContext context,
+    RecommendationProvider provider,
+    bool isRoutine,
+  ) {
+    final activeOwned = provider.activeModeResults.firstWhere(
+      (item) => item.productId == _selectedUserOwnedProduct?.productId,
+      orElse: () => _selectedUserOwnedProduct!,
+    );
+
+    final score = activeOwned.matchScore;
+    final statusDesc = () {
+      if (score >= 80.0) {
+        return 'Formula sunscreen ini sangat selaras dengan kondisi kulit dan kebutuhan proteksi sinar matahari Anda hari ini.';
+      } else if (score >= 70.0) {
+        return 'Sunscreen ini memenuhi kriteria dasar perlindungan UV dan jenis kulit Anda untuk aktivitas hari ini.';
+      } else if (score >= 55.0) {
+        return 'Dapat digunakan saat ini, namun perhatikan kenyamanan tekstur atau perlindungan ekstra jika paparan matahari meningkat.';
+      } else {
+        return 'Tingkat perlindungan UV atau kandungan produk ini kurang optimal untuk intensitas paparan matahari Anda saat ini.';
+      }
+    }();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final infoBg = isDark ? const Color(0xFF0F2744) : const Color(0xFFEFF6FF);
+    final infoBorder = isDark ? const Color(0xFF1E40AF) : const Color(0xFFBFDBFE);
+    final infoColor = isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const AppTitleAction.none(title: 'Sunscreen Anda'),
+        AppSpacing.v12,
+        productCard(
+          activeOwned.toMap(),
+          isRoutine: isRoutine,
+        ),
+        AppSpacing.v12,
+        AppContainer(
+          borderRadius: AppRadius.br16,
+          color: infoBg,
+          borderColor: infoBorder,
+          showBorder: true,
+          showShadow: false,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  color: infoColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      statusDesc,
+                      style: context.text.bodySmall?.copyWith(
+                        color:
+                            context.colors.onSurface.withValues(alpha: 0.9),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () =>
+                              _openUserOwnedProductSheet(context, provider),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Pilih produk lain',
+                                  style: context.text.labelMedium?.copyWith(
+                                    color: infoColor,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: infoColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: infoColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedUserOwnedProduct = null;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(4),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            child: Text(
+                              'Batal',
+                              style: context.text.labelSmall?.copyWith(
+                                color: context.colors.outline,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

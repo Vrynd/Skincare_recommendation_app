@@ -127,6 +127,7 @@ class RecommendationProvider extends ChangeNotifier {
     required String? finishPreference,
     required List<String> selectedConcernIds,
     required List<String> avoidedIngredientIds,
+    String? mode,
     String? locationName,
     double? latitude,
     double? longitude,
@@ -148,6 +149,7 @@ class RecommendationProvider extends ChangeNotifier {
         finishPreference: finishPreference,
         selectedConcernIds: selectedConcernIds,
         avoidedIngredientIds: avoidedIngredientIds,
+        mode: mode,
         locationName: locationName,
         latitude: latitude,
         longitude: longitude,
@@ -166,7 +168,7 @@ class RecommendationProvider extends ChangeNotifier {
 
       return response.sessionId;
     } catch (e) {
-      _errorMessage = 'Gagal mengirim formulir rekomendasi Anda.';
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
       debugPrint('RecommendationProvider submitRecommendation error: $e');
       return null;
     } finally {

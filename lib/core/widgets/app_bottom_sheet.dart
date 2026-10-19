@@ -10,6 +10,7 @@ class AppBottomSheet extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double? height;
   final Color? backgroundColor;
+  final bool wrapInScrollView;
 
   const AppBottomSheet({
     super.key,
@@ -18,6 +19,7 @@ class AppBottomSheet extends StatelessWidget {
     this.padding,
     this.height,
     this.backgroundColor,
+    this.wrapInScrollView = true,
   });
 
   static Future<T?> show<T>({
@@ -31,6 +33,7 @@ class AppBottomSheet extends StatelessWidget {
     double? height,
     Color? backgroundColor,
     bool showHandle = true,
+    bool wrapInScrollView = true,
     double blurAmount = 4.0,
     Color? barrierColor,
   }) {
@@ -56,6 +59,7 @@ class AppBottomSheet extends StatelessWidget {
           height: height,
           backgroundColor:
               backgroundColor ?? context.colors.surfaceContainerLowest,
+          wrapInScrollView: wrapInScrollView,
           child: child,
         ),
       ),
@@ -65,13 +69,14 @@ class AppBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final defaultMaxHeight = MediaQuery.of(context).size.height * 0.82;
+    final targetHeight = height ?? defaultMaxHeight;
 
     return AppContainer(
       color: backgroundColor ?? context.colors.surfaceContainerLowest,
       width: double.infinity,
       height: height,
       constraints: BoxConstraints(
-        maxHeight: height ?? defaultMaxHeight,
+        maxHeight: targetHeight,
       ),
       opacity: 1.0,
       showBorder: false,
@@ -87,19 +92,35 @@ class AppBottomSheet extends StatelessWidget {
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showHandle) _buildHandle(context),
-              Padding(
-                padding: padding ?? const EdgeInsets.fromLTRB(20, 20, 20, 60),
-                child: child,
+        child: wrapInScrollView
+            ? SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showHandle) _buildHandle(context),
+                    Padding(
+                      padding:
+                          padding ?? const EdgeInsets.fromLTRB(20, 20, 20, 60),
+                      child: child,
+                    ),
+                  ],
+                ),
+              )
+            : SizedBox(
+                height: targetHeight,
+                child: Column(
+                  children: [
+                    if (showHandle) _buildHandle(context),
+                    Expanded(
+                      child: Padding(
+                        padding: padding ?? EdgeInsets.zero,
+                        child: child,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }

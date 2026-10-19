@@ -117,6 +117,7 @@ class _CreateRecommendationScreenState
       finishPreference: formProvider.mappedFinish,
       selectedConcernIds: formProvider.selectedConcernIds,
       avoidedIngredientIds: const [],
+      mode: formProvider.isRoutineMode ? 'routine' : 'today',
       locationName: formProvider.locationName,
       latitude: formProvider.latitude,
       longitude: formProvider.longitude,

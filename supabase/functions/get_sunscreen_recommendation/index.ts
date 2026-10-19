@@ -172,13 +172,12 @@ Deno.serve(async (req) => {
         'routine'
       );
 
-      if (evalRoutine.isEligible) {
-        routineCandidates.push({
-          product,
-          eval: evalRoutine,
-          finalScore: evalRoutine.finalScore,
-        });
-      }
+      routineCandidates.push({
+        product,
+        eval: evalRoutine,
+        finalScore: evalRoutine.finalScore,
+        isEligible: evalRoutine.isEligible,
+      });
 
       // ─────────────────────────────────────
       // MODE 2: REKOMENDASI HARI INI (5 Kriteria Aktif: C1, C2, C3, C4, C6)
@@ -199,30 +198,29 @@ Deno.serve(async (req) => {
         'today'
       );
 
-      if (evalToday.isEligible) {
-        todayCandidates.push({
-          product,
-          eval: evalToday,
-          finalScore: evalToday.finalScore,
-        });
-      }
+      todayCandidates.push({
+        product,
+        eval: evalToday,
+        finalScore: evalToday.finalScore,
+        isEligible: evalToday.isEligible,
+      });
     }
 
-    // --- Ranking & Top 3 Selection untuk Kedua Mode ---
-    routineCandidates.sort((a, b) => b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
-    todayCandidates.sort((a, b) => b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
+    // --- Ranking untuk Kedua Mode ---
+    routineCandidates.sort((a, b) => (b.isEligible ? 1 : 0) - (a.isEligible ? 1 : 0) || b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
+    todayCandidates.sort((a, b) => (b.isEligible ? 1 : 0) - (a.isEligible ? 1 : 0) || b.finalScore - a.finalScore || a.product.product_name.localeCompare(b.product.product_name));
 
-    const topRoutine = routineCandidates.slice(0, 3).map((item, index) => ({
+    const allRoutine = routineCandidates.map((item, index) => ({
       ...item,
       rank_position: index + 1,
     }));
 
-    const topToday = todayCandidates.slice(0, 3).map((item, index) => ({
+    const allToday = todayCandidates.map((item, index) => ({
       ...item,
       rank_position: index + 1,
     }));
 
-    if (topRoutine.length === 0 && topToday.length === 0) {
+    if (allRoutine.length === 0 && allToday.length === 0) {
       return new Response(JSON.stringify({ error: "Rekomendasi yang sesuai belum tersedia untuk kondisi saat ini." }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -274,11 +272,13 @@ Deno.serve(async (req) => {
       penalty: 0,
     });
 
-    const routineFormatted = topRoutine.map(item => formatProductOutput(item, 'routine'));
-    const todayFormatted = topToday.map(item => formatProductOutput(item, 'today'));
+    const routineFormatted = allRoutine.map(item => formatProductOutput(item, 'routine'));
+    const todayFormatted = allToday.map(item => formatProductOutput(item, 'today'));
 
-    // Primary results to save in DB transaction (prioritaskan today, fallback ke routine)
-    const primaryForTransaction = topToday.length > 0 ? topToday : topRoutine;
+    // Primary results to save in DB transaction (prioritaskan mode aktif dari body.mode, simpan top 10 eligible)
+    const activeCandidates = body.mode === 'routine' ? allRoutine : allToday;
+    const fallbackCandidates = body.mode === 'routine' ? allToday : allRoutine;
+    const primaryForTransaction = (activeCandidates.length > 0 ? activeCandidates : fallbackCandidates).filter(x => x.isEligible).slice(0, 10);
 
     // --- Save to Database via PL/pgSQL Transaction RPC ---
     const transaction = await saveRecommendationTransaction(adminClient, {
@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
       routine_results: routineFormatted,
       today_results: todayFormatted,
       // Fallback backward-compatibility untuk client lama
-      results: todayFormatted.length > 0 ? todayFormatted : routineFormatted,
+      results: body.mode === 'routine' ? routineFormatted : (todayFormatted.length > 0 ? todayFormatted : routineFormatted),
     };
 
     return new Response(JSON.stringify(responsePayload), {
