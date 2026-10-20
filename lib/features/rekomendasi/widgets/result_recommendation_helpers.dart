@@ -147,6 +147,7 @@ Widget productCard(Map<String, dynamic> item, {bool? isRoutine}) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: ProductRecommendationCard(
+      productCode: (item['product_code'] ?? p['product_code'])?.toString(),
       brandName: (item['brand_name'] ?? p['brand_name'] ?? '-').toString(),
       productName: (item['product_name'] ?? p['product_name'] ?? '-').toString(),
       bpomNumber: (item['bpom_number'] ?? p['bpom_number'] ?? '-').toString(),

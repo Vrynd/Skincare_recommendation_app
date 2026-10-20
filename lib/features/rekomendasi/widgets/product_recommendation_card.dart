@@ -1,3 +1,4 @@
+import 'package:recommendation_app/core/utils/product_asset_util.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:recommendation_app/core/themes/app_colors.dart';
@@ -37,6 +38,7 @@ class ProductRecommendationCard extends StatefulWidget {
   final double? penalty;
   final bool? isRoutine;
   final String? mode;
+  final String? productCode;
 
   const ProductRecommendationCard({
     super.key,
@@ -68,6 +70,7 @@ class ProductRecommendationCard extends StatefulWidget {
     this.penalty,
     this.isRoutine,
     this.mode,
+    this.productCode,
   });
 
   @override
@@ -96,6 +99,16 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     }
     return accents[hash % accents.length];
   }
+
+  String _cleanProductName(String name) {
+    final regex = RegExp(
+      r'\s*(?:SPF\s*\d+\+?|\bPA\+{1,4}\b).*$',
+      caseSensitive: false,
+    );
+    final cleaned = name.replaceAll(regex, '').trim();
+    return cleaned.isNotEmpty ? cleaned : name;
+  }
+
 
   String get _recommendationCategoryLabel {
     return switch (widget.recommendationCategory.toLowerCase()) {
@@ -279,8 +292,41 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // ── Header ─────────────────────────────────────
-          Text(
-            widget.brandName.toUpperCase(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 58,
+                height: 74,
+                decoration: BoxDecoration(
+                  color: brandColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: brandColor.withValues(alpha: 0.15),
+                    width: 1,
+                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ProductAssetHelper.buildImage(
+                  productCode: widget.productCode,
+                  productName: widget.productName,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Icon(
+                      Icons.shield_outlined,
+                      size: 24,
+                      color: brandColor,
+                    ),
+                  ),
+                ),
+              ),
+              AppSpacing.h16,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.brandName.toUpperCase(),
             style: context.text.labelSmall?.copyWith(
               color: brandColor,
               fontWeight: FontWeight.bold,
@@ -289,13 +335,18 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
           ),
           AppSpacing.v4,
           Text(
-            widget.productName,
+            _cleanProductName(widget.productName),
             style: context.text.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               color: context.colors.onSurface,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
+          ),
+                  ],
+                ),
+              ),
+            ],
           ),
           AppSpacing.v20,
 
@@ -629,7 +680,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                         ),
                         AppSpacing.v4,
                         Text(
-                          widget.productName,
+                          _cleanProductName(widget.productName),
                           style: context.text.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: context.colors.onSurface,

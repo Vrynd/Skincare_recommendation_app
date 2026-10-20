@@ -132,6 +132,8 @@ class RecommendationService {
             recommendation_session_id,
             created_at,
             products!inner (
+              product_id,
+              product_code,
               product_name,
               brand_name,
               spf,
@@ -306,6 +308,7 @@ class RecommendationService {
             penalty,
             products (
               product_id,
+              product_code,
               brand_name,
               product_name,
               spf,
@@ -340,7 +343,7 @@ class RecommendationService {
     try {
       final List<dynamic> data = await _supabase
           .from('products')
-          .select('product_id, brand_name, product_name, spf, pa_grade')
+          .select('product_id, product_code, brand_name, product_name, spf, pa_grade, texture, sunscreen_type, finish')
           .eq('is_active', true);
 
       final mappedData = data.map((item) {

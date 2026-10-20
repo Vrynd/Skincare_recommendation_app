@@ -95,7 +95,7 @@ Kolom berikut dapat digunakan sebagai acuan pengisian tabel `products`. Kolom `i
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | S021 | Acnes | Derma Care Gentle Mineral Sunscreen SPF50+ PA++++ | NA18231206404 | 50+ | PA++++ | physical | cream | natural | false | false | true | false | true |
 | S022 | Labore | Sensitive Skin Care BiomeProtect Physical Sunscreen SPF50+ PA++++ | NA18211700506 | 50+ | PA++++ | physical | cream | natural | true | false | false | false | true |
-| S023 | Dew It | Kids Daily Play Lotion SPF30 PA+++ | NA18241702391 | 30 | PA+++ | physical | lotion | natural | false | false | false | false | true |
+| S023 | Emina | Sun Battle SPF30 PA+++ | NA18201700393 | 30 | PA+++ | chemical | lotion | natural | false | false | true | false | true |
 | S024 | Wardah | UV Shield Physical Sunscreen Serum SPF50+ PA++++ | NA18241700027 | 50+ | PA++++ | physical | watery | natural | false | false | false | false | true |
 | S025 | Dear Me Beauty | Skin Barrier Physical Sunscreen SPF50 PA++++ | NA18221701396 | 50 | PA++++ | physical | cream | natural | false | false | true | false | true |
 | S026 | Amaterasun | Physical Sunscreen SPF50+ PA++++ | NA18241700130 | 50+ | PA++++ | physical | cream | natural | false | false | false | false | true |
@@ -235,7 +235,7 @@ Tabel ini menunjukkan pemetaan ringkas antara `product_code` dan `skin_type_code
 | S020 | normal; oily; combination |
 | S021 | normal; sensitive |
 | S022 | normal; sensitive |
-| S023 | normal; dry; sensitive |
+| S023 | normal; oily; combination; dry; sensitive |
 | S024 | normal; sensitive |
 | S025 | normal; dry; sensitive |
 | S026 | normal; sensitive |
@@ -364,7 +364,7 @@ Tabel ini menunjukkan pemetaan antara `product_code` dan `skin_concern_code`. Ma
 | S020 | acne; aging |
 | S021 | acne; sensitive_irritation; aging |
 | S022 | sensitive_irritation; aging |
-| S023 | sensitive_irritation; aging |
+| S023 | acne; hyperpigmentation; aging |
 | S024 | sensitive_irritation; aging |
 | S025 | acne; sensitive_irritation; aging |
 | S026 | sensitive_irritation; aging |
@@ -470,7 +470,7 @@ Tabel ini berisi ringkasan kandungan per produk. Bagian `active` berisi kandunga
 | S020 | Tocopheryl Acetate; Silica | Homosalate; Benzophenone-3; Octocrylene; Avobenzone | Benzophenone-3; Octocrylene; Fragrance |
 | S021 | Allantoin; Panthenol; Glycerin | Zinc Oxide; Titanium Dioxide | Mineral Filter/White Cast |
 | S022 | Microbiome Technology; Panthenol; Bisabolol | Zinc Oxide; Titanium Dioxide | Mineral Filter/White Cast |
-| S023 | Aloe Vera; Oat Extract; Panthenol | Zinc Oxide; Titanium Dioxide | Geranium Oil; Phenoxyethanol |
+| S023 | Aloe Vera; Allantoin | Ethylhexyl Methoxycinnamate | Fragrance; Chemical UV Filters |
 | S024 | Bisabolol; Oat Extract; Green Tea | Zinc Oxide | Mineral Filter/White Cast |
 | S025 | Ceramide; Aloe Vera; Fermented Ingredient | Zinc Oxide; Titanium Dioxide | Mineral Filter/White Cast |
 | S026 | Heartleaf Extract; Intelligent DNA Guardian; Tocopherol | Zinc Oxide | Mineral Filter/White Cast |

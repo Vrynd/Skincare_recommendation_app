@@ -1,3 +1,4 @@
+import 'package:recommendation_app/core/utils/product_asset_util.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:recommendation_app/core/themes/app_colors.dart';
@@ -9,6 +10,7 @@ class HistoryTile extends StatelessWidget {
   final String time;
   final String label;
   final String title;
+  final String? productCode;
   final VoidCallback? onTap;
   final VoidCallback? onTapMore;
 
@@ -17,6 +19,7 @@ class HistoryTile extends StatelessWidget {
     required this.time,
     required this.label,
     required this.title,
+    this.productCode,
     this.onTap,
     this.onTapMore,
   });
@@ -64,14 +67,25 @@ class HistoryTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: brandColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: brandColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: brandColor.withValues(alpha: 0.15),
+                    width: 1,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedClock01,
-                  size: 22,
-                  color: brandColor,
+                clipBehavior: Clip.antiAlias,
+                child: ProductAssetHelper.buildImage(
+                  productCode: productCode,
+                  productName: title,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Center(
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedClock01,
+                      size: 22,
+                      color: brandColor,
+                    ),
+                  ),
                 ),
               ),
               Expanded(

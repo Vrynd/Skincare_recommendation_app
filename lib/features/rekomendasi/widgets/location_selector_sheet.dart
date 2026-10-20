@@ -14,9 +14,13 @@ class LocationSelectorSheet extends StatefulWidget {
   const LocationSelectorSheet({super.key});
 
   static void show(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
     AppBottomSheet.show(
       context: context,
       showHandle: true,
+      wrapInScrollView: false,
+      height: screenHeight * 0.85,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: const LocationSelectorSheet(),
     );
   }
@@ -208,9 +212,8 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
         ),
         AppSpacing.v8,
 
-        // ── List Kota ──────────────────────────────────────────────────
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 340),
+        // ── List Kota (Scrollable, Mengisi sisa ruang leluasa ke bawah) ─
+        Expanded(
           child: _cities.isEmpty
               ? Center(
                   child: Padding(
@@ -225,7 +228,10 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
                   ),
                 )
               : ListView.separated(
-                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(top: 4, bottom: 24),
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
                   itemCount: _cities.length,
                   separatorBuilder: (_, __) => const Divider(
                     height: 1,
@@ -297,7 +303,6 @@ class _LocationSelectorSheetState extends State<LocationSelectorSheet> {
                   },
                 ),
         ),
-        AppSpacing.v16,
       ],
     );
   }

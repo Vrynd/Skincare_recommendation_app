@@ -14,6 +14,7 @@ class AppDockSheet extends StatelessWidget {
   final VoidCallback? onButtonTap;
   final bool isButtonLoading;
   final bool showSwitch;
+  final double buttonHeight;
 
   const AppDockSheet({
     super.key,
@@ -25,6 +26,7 @@ class AppDockSheet extends StatelessWidget {
     this.onButtonTap,
     this.isButtonLoading = false,
     this.showSwitch = true,
+    this.buttonHeight = 48,
   });
 
   @override
@@ -36,13 +38,13 @@ class AppDockSheet extends StatelessWidget {
       width: double.infinity,
       borderRadius: AppRadius.only(topLeft: 32, topRight: 32),
       borderColor: context.colors.outline.withValues(alpha: 0.12),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       showShadow: false,
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          spacing: 20,
+          spacing: 16,
           children: [
             if (showHeader) ...[
               Row(
@@ -88,6 +90,7 @@ class AppDockSheet extends StatelessWidget {
               opacity: effectiveSwitchValue ? 1.0 : 0.4,
               child: AppButton(
                 title: buttonTitle,
+                height: buttonHeight,
                 borderRadius: AppRadius.br32,
                 onTap: effectiveSwitchValue ? onButtonTap : null,
                 isLoading: isButtonLoading,

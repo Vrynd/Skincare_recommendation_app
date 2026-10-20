@@ -194,7 +194,7 @@ class _CreateRecommendationScreenState
                     ),
                     AppSpacing.h8,
                     Text(
-                      'Rekomendasi Produk',
+                      'Cari Produk',
                       style: context.text.bodyMedium!.copyWith(
                         fontWeight: selectedIndex == 0
                             ? FontWeight.w700
@@ -263,7 +263,7 @@ class _CreateRecommendationScreenState
     return AppScaffold(
       backgroundColor: context.colors.lightBackground,
       appBar: AppAppBar(
-        title: 'Buat Rekomendasi',
+        title: 'Rekomendasi',
         scrollOffset: _scrollOffset,
         leadingWidth: 66,
         leading: Padding(

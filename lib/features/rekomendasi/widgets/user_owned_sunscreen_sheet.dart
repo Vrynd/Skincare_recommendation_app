@@ -1,3 +1,4 @@
+import 'package:recommendation_app/core/utils/product_asset_util.dart';
 import 'package:flutter/material.dart';
 import 'package:recommendation_app/core/themes/app_colors.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
@@ -191,7 +192,7 @@ class _UserOwnedSunscreenSheetState extends State<UserOwnedSunscreenSheet> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: 1.15,
+                    childAspectRatio: 0.78,
                   ),
                   itemBuilder: (context, index) {
                     final item = products[index];
@@ -256,6 +257,73 @@ class _ProductGridCardItemState extends State<_ProductGridCardItem> {
     return cleaned.isNotEmpty ? cleaned : name;
   }
 
+  Widget _buildSmartPlaceholder(Color brandColor, String texture) {
+    final displayTexture = texture.isNotEmpty ? texture.toUpperCase() : 'SUNSCREEN';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            brandColor.withValues(alpha: 0.05),
+            brandColor.withValues(alpha: 0.12),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 22,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: brandColor.withValues(alpha: 0.25),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(5),
+                  ),
+                  border: Border.all(
+                    color: brandColor.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+              ),
+              Container(
+                width: 44,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: brandColor.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: brandColor.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: RotatedBox(
+                    quarterTurns: 3,
+                    child: Text(
+                      displayTexture,
+                      style: TextStyle(
+                        color: brandColor.withValues(alpha: 0.6),
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
@@ -265,9 +333,10 @@ class _ProductGridCardItemState extends State<_ProductGridCardItem> {
     final badgeText =
         isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
 
-    final borderColor = _isHovered
-        ? brandColor
-        : context.colors.outline.withValues(alpha: 0.2);
+    final defaultBgColor =
+        context.colors.surfaceContainerLowest.withValues(alpha: 0.85);
+    final defaultBorderColor = context.colors.surfaceContainerLowest;
+    final borderColor = _isHovered ? brandColor : defaultBorderColor;
 
     return InkWell(
       onTap: widget.onTap,
@@ -284,88 +353,159 @@ class _ProductGridCardItemState extends State<_ProductGridCardItem> {
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
-      borderRadius: AppRadius.br16,
+      borderRadius: AppRadius.br24,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: AppRadius.br16,
+          color: defaultBgColor,
+          borderRadius: AppRadius.br24,
           border: Border.all(
             color: borderColor,
-            width: _isHovered ? 1.6 : 1.2,
+            width: _isHovered ? 1.5 : 1.0,
           ),
-        ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Baris atas: Nama Brand dengan warna Brand (tanpa ikon)
-            Text(
-              item.brandName.toUpperCase(),
-              style: context.text.labelSmall?.copyWith(
-                color: brandColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 9.5,
-                letterSpacing: 0.8,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            // Nama Produk tanpa SPF & PA yang redundan
-            Expanded(
-              child: Text(
-                _cleanProductName(item.productName),
-                style: context.text.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.onSurface,
-                  height: 1.25,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 6),
-            // Badge SPF · PA dan Tekstur
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2.5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    'SPF ${item.spf} · ${item.paGrade}',
-                    style: TextStyle(
-                      color: badgeText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 9,
-                    ),
-                  ),
-                ),
-                if (item.texture != null && item.texture!.isNotEmpty) ...[
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      '· ${item.texture}',
-                      style: context.text.labelSmall?.copyWith(
-                        color: context.colors.outline,
-                        fontSize: 9,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
+        ),
+        padding: const EdgeInsets.all(5),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(19),
+          child: Stack(
+            children: [
+              // ── 1. Gambar Penuh / Smart Visual Placeholder ────────────
+              Positioned.fill(
+                child: ProductAssetHelper.buildImage(
+                  productCode: item.productCode,
+                  productName: item.productName,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      _buildSmartPlaceholder(brandColor, item.texture ?? ''),
+                ),
+              ),
+
+              // ── 2. Gradient Scrim Halus di Bagian Bawah ───────────────
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(10, 24, 10, 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        context.colors.surfaceContainerLowest
+                            .withValues(alpha: 0.0),
+                        context.colors.surfaceContainerLowest
+                            .withValues(alpha: 0.65),
+                        context.colors.surfaceContainerLowest
+                            .withValues(alpha: 0.96),
+                      ],
+                      stops: const [0.0, 0.45, 1.0],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        item.brandName.toUpperCase(),
+                        style: context.text.labelSmall?.copyWith(
+                          color: brandColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 9.5,
+                          letterSpacing: 0.8,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _cleanProductName(item.productName),
+                        style: context.text.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: context.colors.onSurface,
+                          height: 1.22,
+                          fontSize: 11.5,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── 3. Elemen Atas: SPF dan PA di Kiri Atas ──────────────────
+              Positioned(
+                top: 8,
+                left: 8,
+                right: 8,
+                child: Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBg.withValues(alpha: 0.94),
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'SPF ${item.spf}',
+                        style: TextStyle(
+                          color: badgeText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 8.5,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBg.withValues(alpha: 0.94),
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        item.paGrade,
+                        style: TextStyle(
+                          color: badgeText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 8.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

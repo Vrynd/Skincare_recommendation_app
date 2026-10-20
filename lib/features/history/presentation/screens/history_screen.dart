@@ -146,6 +146,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               time: item.formattedTime,
               label: item.brandName,
               title: item.cleanProductName,
+              productCode: item.productCode,
               onTap: () {},
               onTapMore: () => _tapToDelete(item),
             ),

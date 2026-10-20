@@ -125,6 +125,7 @@ class AppButton extends StatelessWidget {
                     textColor: textColor,
                     iconColor: iconColor,
                     isGhostStyle: variant == ButtonVariant.ghost,
+                    buttonHeight: height,
                   ),
                 ),
               ),
@@ -255,6 +256,7 @@ class _ButtonContent extends StatelessWidget {
   final Color textColor;
   final Color? iconColor;
   final bool isGhostStyle;
+  final double buttonHeight;
 
   const _ButtonContent({
     required this.title,
@@ -263,6 +265,7 @@ class _ButtonContent extends StatelessWidget {
     required this.textColor,
     this.iconColor,
     required this.isGhostStyle,
+    required this.buttonHeight,
   });
 
   @override
@@ -278,6 +281,14 @@ class _ButtonContent extends StatelessWidget {
       );
     }
 
+    final textStyle = (buttonHeight <= 48
+            ? context.text.titleMedium
+            : context.text.titleLarge)
+        ?.copyWith(
+      color: textColor,
+      fontWeight: isGhostStyle ? FontWeight.w500 : FontWeight.w600,
+    );
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
@@ -291,10 +302,7 @@ class _ButtonContent extends StatelessWidget {
         ],
         Text(
           title,
-          style: context.text.titleLarge?.copyWith(
-            color: textColor,
-            fontWeight: isGhostStyle ? FontWeight.w500 : FontWeight.w600,
-          ),
+          style: textStyle,
         ),
       ],
     );
