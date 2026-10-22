@@ -74,6 +74,12 @@ class RecommendationService {
     String? uvRiskLevel,
   }) async {
     try {
+      if (mode == 'today' && (latitude == null || longitude == null)) {
+        throw Exception(
+          'Lokasi tujuan belum ditentukan untuk rekomendasi hari ini. Silakan tentukan lokasi terlebih dahulu.',
+        );
+      }
+
       final requestBody = {
         'user_id': userId,
         'skin_type_id': skinTypeId,
@@ -110,6 +116,15 @@ class RecommendationService {
         final errMsg = response.data is Map
             ? (response.data['error'] ?? response.data.toString())
             : response.data.toString();
+
+        if (errMsg.toString().toLowerCase().contains('open-meteo') ||
+            errMsg.toString().toLowerCase().contains('indeks uv') ||
+            errMsg.toString().toLowerCase().contains('uv')) {
+          throw Exception(
+            'Layanan indeks UV sedang mengalami gangguan. Tidak dapat melanjutkan rekomendasi hari ini. Silakan coba beberapa saat lagi.',
+          );
+        }
+
         throw Exception('HTTP ${response.status}: $errMsg');
       }
 

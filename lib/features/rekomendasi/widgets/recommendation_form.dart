@@ -367,15 +367,25 @@ class RecommendationForm extends StatelessWidget {
     HomeLocationProvider locationProvider,
   ) {
     final isCustom = formProvider.isCustomLocation;
+    final hasNoGps = !isCustom &&
+        (!locationProvider.hasPermissions ||
+            locationProvider.currentPosition == null);
+
     final locationName = isCustom
         ? (formProvider.customLocationName ?? 'Lokasi Pilihan')
-        : locationProvider.readableAddress;
+        : (hasNoGps
+            ? '${locationProvider.readableAddress} • Ketuk untuk pilih kota'
+            : locationProvider.readableAddress);
+
+    final isUvFailed = isCustom
+        ? formProvider.isCustomUvError
+        : locationProvider.isUvError;
 
     final uvVal = isCustom
         ? formProvider.customUvIndex
-        : locationProvider.uvIndex;
+        : (locationProvider.isUvError ? null : locationProvider.uvIndex);
 
-    final riskLevel = uvVal != null ? UVRiskLevel.fromIndex(uvVal) : null;
+    final riskLevel = (uvVal != null && !isUvFailed) ? UVRiskLevel.fromIndex(uvVal) : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,8 +398,10 @@ class RecommendationForm extends StatelessWidget {
           child: AppTile.modern(
             icon: isCustom
                 ? HugeIcons.strokeRoundedLocation01
-                : HugeIcons.strokeRoundedGps01,
-            iconColor: context.colors.primary,
+                : (hasNoGps
+                    ? HugeIcons.strokeRoundedAlertCircle
+                    : HugeIcons.strokeRoundedGps01),
+            iconColor: hasNoGps ? AppColors.accentOrange : context.colors.primary,
             title: isCustom ? 'Lokasi Pilihan' : 'Lokasi Saat Ini',
             subtitle: locationName,
             onTap: () => LocationSelectorSheet.show(context),
@@ -407,12 +419,14 @@ class RecommendationForm extends StatelessWidget {
             children: [
               AppTile.modern(
                 icon: HugeIcons.strokeRoundedAlertCircle,
-                iconColor: riskLevel?.color ?? AppColors.accentOrange,
+                iconColor: isUvFailed
+                    ? context.colors.error
+                    : (riskLevel?.color ?? AppColors.accentOrange),
                 title: 'Kategori Risiko',
                 value: formProvider.isLoadingCustomLocation
                     ? 'Memuat...'
-                    : (riskLevel?.name ?? '-'),
-                valueColor: riskLevel?.color,
+                    : (isUvFailed ? 'Layanan Gagal' : (riskLevel?.name ?? '-')),
+                valueColor: isUvFailed ? context.colors.error : riskLevel?.color,
                 trailing: formProvider.isLoadingCustomLocation
                     ? const SizedBox(
                         width: 14,
@@ -425,12 +439,16 @@ class RecommendationForm extends StatelessWidget {
               ),
               AppTile.modern(
                 icon: HugeIcons.strokeRoundedSun02,
-                iconColor: AppColors.accentAmber,
+                iconColor: isUvFailed ? context.colors.error : AppColors.accentAmber,
                 title: 'Nilai Indeks UV',
                 value: formProvider.isLoadingCustomLocation
                     ? 'Memuat...'
-                    : (uvVal != null ? uvVal.toStringAsFixed(1) : '-'),
-                valueColor: context.colors.onSurface,
+                    : (isUvFailed
+                        ? 'Tidak Tersedia'
+                        : (uvVal != null ? uvVal.toStringAsFixed(1) : '-')),
+                valueColor: isUvFailed
+                    ? context.colors.error
+                    : context.colors.onSurface,
                 trailing: formProvider.isLoadingCustomLocation
                     ? const SizedBox(
                         width: 14,
@@ -444,6 +462,15 @@ class RecommendationForm extends StatelessWidget {
             ],
           ),
         ),
+        if (isUvFailed) ...[
+          AppSpacing.v12,
+          _buildInfoBanner(
+            context,
+            title: 'Layanan Indeks UV Terganggu',
+            description:
+                'Gagal mengambil data indeks UV dari satelit/layanan cuaca. Silakan periksa jaringan internet atau coba beberapa saat lagi.',
+          ),
+        ],
       ],
     );
   }

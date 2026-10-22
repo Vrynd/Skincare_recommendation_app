@@ -32,6 +32,7 @@ class RecommendationFormProvider extends ChangeNotifier {
   double? _customUvIndex;
   String? _customUvRiskLevel;
   bool _isLoadingCustomLocation = false;
+  bool _isCustomUvError = false;
 
   // Getters Mode Formulir
   int get selectedModeIndex => _selectedModeIndex;
@@ -44,6 +45,7 @@ class RecommendationFormProvider extends ChangeNotifier {
   double? get customUvIndex => _customUvIndex;
   String? get customUvRiskLevel => _customUvRiskLevel;
   bool get isLoadingCustomLocation => _isLoadingCustomLocation;
+  bool get isCustomUvError => _isCustomUvError;
 
   void setSelectedModeIndex(int index) {
     if (_selectedModeIndex != index) {
@@ -161,11 +163,13 @@ class RecommendationFormProvider extends ChangeNotifier {
     _longitude = longitude;
     _isConfirmed = false;
     _isLoadingCustomLocation = true;
+    _isCustomUvError = false;
     notifyListeners();
 
     try {
       final uvData = await HomeUVService().fetchUVData(latitude, longitude);
       if (uvData != null) {
+        _isCustomUvError = false;
         _customUvIndex = uvData.uvIndex;
         _uvIndex = uvData.uvIndex;
         _customUvRiskLevel = switch (uvData.riskLevel) {
@@ -176,8 +180,19 @@ class RecommendationFormProvider extends ChangeNotifier {
           UVRiskLevel.extreme => 'extreme',
         };
         _uvRiskLevel = _customUvRiskLevel;
+      } else {
+        _isCustomUvError = true;
+        _customUvIndex = null;
+        _uvIndex = null;
+        _customUvRiskLevel = null;
+        _uvRiskLevel = null;
       }
     } catch (e) {
+      _isCustomUvError = true;
+      _customUvIndex = null;
+      _uvIndex = null;
+      _customUvRiskLevel = null;
+      _uvRiskLevel = null;
       debugPrint('Error fetching UV for custom location: $e');
     } finally {
       _isLoadingCustomLocation = false;
@@ -188,6 +203,7 @@ class RecommendationFormProvider extends ChangeNotifier {
   /// Mengembalikan pilihan lokasi ke GPS saat ini
   void resetToGpsLocation(HomeLocationProvider locationProvider) {
     _isCustomLocation = false;
+    _isCustomUvError = false;
     _customLocationName = null;
     _customLatitude = null;
     _customLongitude = null;
@@ -224,16 +240,18 @@ class RecommendationFormProvider extends ChangeNotifier {
     // Koordinat fallback default tropis jika di mode rutin dan GPS belum tersedia
     _latitude = position?.latitude ?? (isRoutineMode ? -6.2088 : null);
     _longitude = position?.longitude ?? (isRoutineMode ? 106.8456 : null);
-    _uvIndex = locationProvider.uvIndex;
+    _uvIndex = locationProvider.isUvError ? null : locationProvider.uvIndex;
 
     // Memetakan tingkat risiko UV dari enum model ke string enum database
-    _uvRiskLevel = switch (locationProvider.uvRiskLevel) {
-      UVRiskLevel.low => 'low',
-      UVRiskLevel.moderate => 'moderate',
-      UVRiskLevel.high => 'high',
-      UVRiskLevel.veryHigh => 'very_high',
-      UVRiskLevel.extreme => 'extreme',
-    };
+    _uvRiskLevel = locationProvider.isUvError
+        ? null
+        : switch (locationProvider.uvRiskLevel) {
+            UVRiskLevel.low => 'low',
+            UVRiskLevel.moderate => 'moderate',
+            UVRiskLevel.high => 'high',
+            UVRiskLevel.veryHigh => 'very_high',
+            UVRiskLevel.extreme => 'extreme',
+          };
 
     notifyListeners();
   }

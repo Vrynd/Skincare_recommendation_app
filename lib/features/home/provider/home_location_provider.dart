@@ -24,6 +24,8 @@ class HomeLocationProvider extends ChangeNotifier {
   String _uvDurationText = '2.5 Jam';
   String _spfText = '15+ SPF';
   bool _isUvLoading = false;
+  bool _isUvError = false;
+  String? _uvErrorMessage;
   List<HourlyUVForecast> _hourlyForecast = [];
 
   // Getters Lokasi
@@ -49,6 +51,8 @@ class HomeLocationProvider extends ChangeNotifier {
   String get uvDurationText => _uvDurationText;
   String get spfText => _spfText;
   bool get isUvLoading => _isUvLoading;
+  bool get isUvError => _isUvError;
+  String? get uvErrorMessage => _uvErrorMessage;
   UVRiskLevel get uvRiskLevel => UVRiskLevel.fromIndex(uvIndex);
   List<HourlyUVForecast> get hourlyForecast => _hourlyForecast;
 
@@ -158,6 +162,8 @@ class HomeLocationProvider extends ChangeNotifier {
       final shouldFetchUv = cachedUv == null || cachedUv.isExpired;
       if (shouldFetchUv || hasChanged) {
         _isUvLoading = true;
+        _isUvError = false;
+        _uvErrorMessage = null;
         notifyListeners();
 
         final uvData = await _uvService.fetchUVData(
@@ -165,6 +171,8 @@ class HomeLocationProvider extends ChangeNotifier {
           position.longitude,
         );
         if (uvData != null) {
+          _isUvError = false;
+          _uvErrorMessage = null;
           _uvIndex = uvData.uvIndex;
           _peakTimeRange = uvData.peakTime;
           _uvDurationText = uvData.sunburnText;
@@ -173,8 +181,14 @@ class HomeLocationProvider extends ChangeNotifier {
 
           // Simpan pembaruan data UV ke cache lokal SharedPreferences
           await _storageService.saveUVCache(uvData);
+        } else {
+          if (cachedUv == null || cachedUv.isExpired) {
+            _isUvError = true;
+            _uvErrorMessage = 'Layanan indeks UV sedang tidak dapat diakses.';
+          }
         }
         _isUvLoading = false;
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('GPS fetchLocation error: $e');

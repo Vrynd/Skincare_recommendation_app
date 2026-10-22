@@ -15,6 +15,7 @@ import 'package:recommendation_app/features/history/provider/history_provider.da
 import 'package:recommendation_app/features/home/provider/home_location_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_form_provider.dart';
 import 'package:recommendation_app/features/rekomendasi/provider/recommendation_provider.dart';
+import 'package:recommendation_app/features/rekomendasi/widgets/location_selector_sheet.dart';
 import 'package:recommendation_app/features/rekomendasi/widgets/recommendation_form.dart';
 
 class CreateRecommendationScreen extends StatefulWidget {
@@ -87,7 +88,7 @@ class _CreateRecommendationScreenState
 
     final locationProvider = context.read<HomeLocationProvider>();
 
-    // Guard: jika lokasi sedang dimuat, tunda submit HANYA jika di mode Proteksi Hari Ini
+    // Guard: jika lokasi sedang dimuat atau izin lokasi ditolak HANYA pada mode Proteksi Hari Ini
     if (formProvider.isTodayMode) {
       if (formProvider.isCustomLocation && formProvider.isLoadingCustomLocation) {
         AppSnackBar.showError(
@@ -99,6 +100,26 @@ class _CreateRecommendationScreenState
         AppSnackBar.showError(
           context,
           'Menunggu data lokasi GPS... Coba lagi sebentar.',
+        );
+        return;
+      } else if (!formProvider.isCustomLocation &&
+          (locationProvider.currentPosition == null || !locationProvider.hasPermissions)) {
+        AppSnackBar.showError(
+          context,
+          'Izin akses lokasi tidak aktif. Silakan pilih lokasi tujuan secara manual untuk melanjutkan.',
+        );
+        LocationSelectorSheet.show(context);
+        return;
+      }
+
+      final isUvFailed = formProvider.isCustomLocation
+          ? formProvider.isCustomUvError
+          : locationProvider.isUvError;
+
+      if (isUvFailed) {
+        AppSnackBar.showError(
+          context,
+          'Layanan indeks UV sedang tidak dapat diakses. Rekomendasi hari ini tidak dapat dilanjutkan.',
         );
         return;
       }
@@ -330,6 +351,30 @@ class _CreateRecommendationScreenState
             );
             return;
           }
+          final loc = context.read<HomeLocationProvider>();
+          if (formProvider.isTodayMode &&
+              !formProvider.isCustomLocation &&
+              (loc.currentPosition == null || !loc.hasPermissions)) {
+            AppSnackBar.showError(
+              context,
+              'Izin akses lokasi tidak aktif. Silakan pilih lokasi tujuan secara manual untuk melanjutkan.',
+            );
+            LocationSelectorSheet.show(context);
+            return;
+          }
+
+          final isUvFailed = formProvider.isCustomLocation
+              ? formProvider.isCustomUvError
+              : loc.isUvError;
+
+          if (formProvider.isTodayMode && isUvFailed) {
+            AppSnackBar.showError(
+              context,
+              'Layanan indeks UV sedang tidak dapat diakses. Rekomendasi hari ini tidak dapat dilanjutkan.',
+            );
+            return;
+          }
+
           formProvider.setIsConfirmed(value);
         },
         onButtonTap: _tapToRecommendation,
