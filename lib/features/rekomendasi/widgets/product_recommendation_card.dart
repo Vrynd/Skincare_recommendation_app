@@ -168,25 +168,44 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
   void _showBreakdownSheet(BuildContext context) {
     final brandColor = _getBrandColor(widget.brandName);
 
-    final uv = widget.uvScore ?? (widget.sUv != null ? widget.sUv! * 25.0 : 25.0);
-    final skinType = widget.skinTypeScore ?? (widget.sSkin != null ? widget.sSkin! * 25.0 : 25.0);
-    final activity = widget.activityScore ?? (widget.sActivity != null ? widget.sActivity! * 20.0 : 20.0);
-    final concern = widget.skinConcernScore ?? (widget.sConcern != null ? widget.sConcern! * 10.0 : 10.0);
-    final texture = widget.textureScore ?? (widget.sTexture != null ? widget.sTexture! * 10.0 : 10.0);
-    final finish = widget.finishScore ?? (widget.sFinish != null ? widget.sFinish! * 10.0 : 10.0);
+    final isRoutineMode = widget.isRoutine ??
+        (widget.mode == 'routine' || (widget.sTexture != null && widget.sTexture! > 0));
+
+    // Bobot maksimal kriteria aktif (Dual Mode)
+    final double maxUv = isRoutineMode ? 0.0 : (25.0 / 0.90); // 27.78%
+    final double maxSkin = isRoutineMode ? (25.0 / 0.75) : (25.0 / 0.90); // 33.33% / 27.78%
+    final double maxActivity = isRoutineMode ? (20.0 / 0.75) : (20.0 / 0.90); // 26.67% / 22.22%
+    final double maxConcern = isRoutineMode ? (10.0 / 0.75) : (10.0 / 0.90); // 13.33% / 11.11%
+    final double maxTexture = isRoutineMode ? (10.0 / 0.75) : 0.0; // 13.33% / 0%
+    final double maxFinish = isRoutineMode ? (10.0 / 0.75) : (10.0 / 0.90); // 13.33% / 11.11%
+
+    // Menghitung poin kontribusi terbobot kriteria
+    double calcScore(double? sValue, double? rawScoreValue, double maxWeight) {
+      if (sValue != null) {
+        return (sValue * maxWeight).clamp(0.0, maxWeight);
+      }
+      if (rawScoreValue != null) {
+        return rawScoreValue.clamp(0.0, maxWeight);
+      }
+      return maxWeight;
+    }
+
+    final uv = calcScore(widget.sUv, widget.uvScore, maxUv);
+    final skinType = calcScore(widget.sSkin, widget.skinTypeScore, maxSkin);
+    final activity = calcScore(widget.sActivity, widget.activityScore, maxActivity);
+    final concern = calcScore(widget.sConcern, widget.skinConcernScore, maxConcern);
+    final texture = calcScore(widget.sTexture, widget.textureScore, maxTexture);
+    final finish = calcScore(widget.sFinish, widget.finishScore, maxFinish);
     final finalScore = widget.matchScore;
     final contribs = widget.contributions;
 
-    // Hitung persentase kontribusi relatif K_ij (Persamaan 2)
+    // Hitung persentase kontribusi relatif K_ij (Persamaan 2) untuk visual mini stacked bar
     double getContrib(String key, double score) {
       if (contribs != null && contribs.containsKey(key)) {
         return contribs[key]!;
       }
       return finalScore > 0 ? (score / finalScore) * 100 : 0.0;
     }
-
-    final isRoutineMode = widget.isRoutine ??
-        (widget.mode == 'routine' || (widget.sTexture != null && widget.sTexture! > 0));
 
     final criteria = isRoutineMode
         ? [
@@ -195,6 +214,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentPurple,
               label: 'Jenis Kulit',
               weight: '33.3%',
+              maxScore: maxSkin,
               score: skinType,
               pct: getContrib('skinType', skinType),
               matchDegree: widget.sSkin,
@@ -204,6 +224,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentBlue,
               label: 'Aktivitas Harian',
               weight: '26.7%',
+              maxScore: maxActivity,
               score: activity,
               pct: getContrib('activity', activity),
               matchDegree: widget.sActivity,
@@ -213,6 +234,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentOrange,
               label: 'Kondisi Kulit',
               weight: '13.3%',
+              maxScore: maxConcern,
               score: concern,
               pct: getContrib('skinConcern', concern),
               matchDegree: widget.sConcern,
@@ -222,6 +244,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentTeal,
               label: 'Tekstur Produk',
               weight: '13.3%',
+              maxScore: maxTexture,
               score: texture,
               pct: getContrib('texture', texture),
               matchDegree: widget.sTexture,
@@ -231,6 +254,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentPink,
               label: 'Hasil Akhir',
               weight: '13.3%',
+              maxScore: maxFinish,
               score: finish,
               pct: getContrib('finish', finish),
               matchDegree: widget.sFinish,
@@ -242,6 +266,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentAmber,
               label: 'Proteksi UV',
               weight: '27.8%',
+              maxScore: maxUv,
               score: uv,
               pct: getContrib('uv', uv),
               matchDegree: widget.sUv,
@@ -251,6 +276,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentPurple,
               label: 'Jenis Kulit',
               weight: '27.8%',
+              maxScore: maxSkin,
               score: skinType,
               pct: getContrib('skinType', skinType),
               matchDegree: widget.sSkin,
@@ -260,6 +286,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentBlue,
               label: 'Aktivitas Harian',
               weight: '22.2%',
+              maxScore: maxActivity,
               score: activity,
               pct: getContrib('activity', activity),
               matchDegree: widget.sActivity,
@@ -269,6 +296,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentOrange,
               label: 'Kondisi Kulit',
               weight: '11.1%',
+              maxScore: maxConcern,
               score: concern,
               pct: getContrib('skinConcern', concern),
               matchDegree: widget.sConcern,
@@ -278,6 +306,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               color: AppColors.accentPink,
               label: 'Hasil Akhir',
               weight: '11.1%',
+              maxScore: maxFinish,
               score: finish,
               pct: getContrib('finish', finish),
               matchDegree: widget.sFinish,
@@ -447,7 +476,7 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
 
           // ── Label Seksi ─────────────────────────────────
           Text(
-            'RINCIAN FAKTOR KECOCOKAN',
+            'RINCIAN KONTRIBUSI SKOR',
             style: context.text.labelSmall?.copyWith(
               color: context.colors.outline,
               fontWeight: FontWeight.bold,
@@ -463,8 +492,8 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
               icon: criteria[i].icon,
               iconColor: criteria[i].color,
               title: criteria[i].label,
-              weight: criteria[i].weight,
               rawScore: criteria[i].score,
+              maxScore: criteria[i].maxScore,
               contributionPct: criteria[i].pct,
               matchDegree: criteria[i].matchDegree,
             ),
@@ -564,15 +593,24 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
     required dynamic icon,
     required Color iconColor,
     required String title,
-    required String weight,
     required double rawScore,
+    required double maxScore,
     required double contributionPct,
     double? matchDegree,
   }) {
-    final displayPct = contributionPct.clamp(0.0, 100.0);
-    final barFill = (matchDegree != null)
-        ? matchDegree.clamp(0.0, 1.0)
-        : (displayPct / 100).clamp(0.0, 1.0);
+    // Derajat pemenuhan kriteria (0.0 s.d 1.0) untuk panjang visual progress bar
+    final double degree = matchDegree ??
+        (maxScore > 0 ? (rawScore / maxScore).clamp(0.0, 1.0) : 0.0);
+    final double barFill = degree.clamp(0.0, 1.0);
+
+    // Format nilai poin kontribusi: jika bulat misal '+25%', jika desimal misal '+27.8%'
+    String formatContribution(double score) {
+      if (score <= 0.05) return '+0%';
+      if ((score - score.round()).abs() < 0.05) {
+        return '+${score.round()}%';
+      }
+      return '+${score.toStringAsFixed(1)}%';
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -598,29 +636,16 @@ class _ProductRecommendationCardState extends State<ProductRecommendationCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '$title ',
-                            style: context.text.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: context.colors.onSurface,
-                            ),
-                          ),
-                          TextSpan(
-                            text: '($weight)',
-                            style: context.text.labelSmall?.copyWith(
-                              color: context.colors.outline,
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      title,
+                      style: context.text.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.onSurface,
                       ),
                     ),
                     Text(
-                      '${displayPct.toStringAsFixed(1)}%',
-                      style: context.text.labelMedium?.copyWith(
+                      formatContribution(rawScore),
+                      style: context.text.labelLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: iconColor,
                       ),

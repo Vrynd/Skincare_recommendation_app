@@ -84,7 +84,13 @@ class _ResultRecommendationScreenState
           child: Center(
             child: NavigationCircleButton(
               size: 48,
-              onTap: () => context.go(AppRouter.homePath),
+              onTap: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go(AppRouter.homePath);
+                }
+              },
               child: HugeIcon(
                 icon: HugeIcons.strokeRoundedArrowLeft02,
                 color: context.colors.onSurface,

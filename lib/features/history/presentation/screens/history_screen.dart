@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:provider/provider.dart';
+import 'package:recommendation_app/core/routes/app_router.dart';
 import 'package:recommendation_app/core/themes/app_theme.dart';
 import 'package:recommendation_app/core/widgets/app_bar.dart';
 import 'package:recommendation_app/core/widgets/app_search_bar.dart';
@@ -147,7 +149,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
               label: item.brandName,
               title: item.cleanProductName,
               productCode: item.productCode,
-              onTap: () {},
+              onTap: () {
+                context.push(
+                  '${AppRouter.recommendationResultPath}/${item.sessionId}',
+                );
+              },
               onTapMore: () => _tapToDelete(item),
             ),
           );
